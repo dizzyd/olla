@@ -1,0 +1,11 @@
+{
+    "type": "code",
+    "modid": "olla",
+    "name": "Olla",
+    "authors": [
+        "DizzyD"
+    ],
+    "description": "Adds olla pottery for irrigation",
+    "version": "0.1.0",
+    "dependencies": {}
+}
