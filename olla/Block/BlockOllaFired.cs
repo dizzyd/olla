@@ -4,6 +4,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using Vintagestory.GameContent;
 
 namespace olla
 {
@@ -36,60 +37,43 @@ namespace olla
 
         private bool TryFillFromWaterContainer(IWorldAccessor world, IPlayer byPlayer, BlockEntityOllaFired be, ItemStack itemStack, ItemSlot slot)
         {
-            // Check if item contains water
-            var props = itemStack.ItemAttributes?["waterTightContainerProps"];
-            if (props == null) return false;
+            // Check if the held item is a liquid source
+            if (!(itemStack.Collectible is ILiquidSource liquidSource)) return false;
 
-            // Check if container has water
-            var contents = itemStack.Attributes?.GetTreeAttribute("contents");
-            if (contents == null) return false;
-
-            ItemStack contentStack = contents.GetItemstack("0");
-            if (contentStack == null) return false;
-
-            // Check if it's water
-            if (contentStack.Collectible.Code?.Path != "waterportion") return false;
-
+            // Get the content using the interface (no manual attribute access!)
+            ItemStack contentStack = liquidSource.GetContent(itemStack);
+            if (contentStack?.Collectible.Code?.Path != "waterportion") return false;
+            
             // Only process the actual transfer on server side
             if (world.Side == EnumAppSide.Server)
             {
                 // Water portions are stored in 10ml units: 100 portions = 1 liter
                 const float portionsPerLiter = 100f;
-
-                int waterPortions = contentStack.StackSize;
-                float litersAvailable = waterPortions / portionsPerLiter;
-
-                // Try to add water to olla
+                
+                // The total number of liters available in the stack is itemStack.Size * contentStack.Size / portionsPerLiter; we want
+                float litersAvailable = contentStack.StackSize * itemStack.StackSize / portionsPerLiter;
                 float spaceAvailable = be.MaxWaterCapacity - be.CurrentWaterLiters;
-                if (spaceAvailable <= 0)
-                {
-                    return true;
-                }
 
+                if (spaceAvailable <= 0) return true;
+                
+                // We want to distribute number of liters to transfer across all the containers in the stack. The
+                // ILiquidSource.TryTakeContent removes the same amount from every item in the stack, so we need
+                // to calculate how many portions to consume by dividing by the item stack size.
                 float litersToTransfer = System.Math.Min(litersAvailable, spaceAvailable);
-                int portionsToConsume = (int)System.Math.Ceiling(litersToTransfer * portionsPerLiter);
-
-                // Remove water from container
-                contentStack.StackSize -= portionsToConsume;
-
-                if (contentStack.StackSize <= 0)
+                int portionsToConsume = (int)System.Math.Ceiling(litersToTransfer * portionsPerLiter / itemStack.StackSize);
+                
+                // Use the interface to remove water (handles all the attribute manipulation!)
+                ItemStack takenStack = liquidSource.TryTakeContent(itemStack, portionsToConsume);
+                if (takenStack != null && takenStack.StackSize > 0)
                 {
-                    // Container is now empty
-                    contents.RemoveAttribute("0");
+                    slot.MarkDirty();
+
+                    // Add water to olla
+                    be.TryAddWater(litersToTransfer);
+
+                    // Play sound
+                    world.PlaySoundAt(new AssetLocation("sounds/block/water"), be.Pos.X, be.Pos.Y, be.Pos.Z, byPlayer);
                 }
-                else
-                {
-                    contents.SetItemstack("0", contentStack);
-                }
-
-                itemStack.Attributes["contents"] = contents;
-                slot.MarkDirty();
-
-                // Add water to olla
-                be.TryAddWater(litersToTransfer);
-
-                // Play sound
-                world.PlaySoundAt(new AssetLocation("sounds/block/water"), be.Pos.X, be.Pos.Y, be.Pos.Z, byPlayer);
             }
 
             return true;
