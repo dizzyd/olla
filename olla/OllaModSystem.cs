@@ -7,7 +7,11 @@ public class OllaModSystem : ModSystem
     public override void Start(ICoreAPI api)
     {
         base.Start(api);
-        // Register custom item/block classes here as needed
-        // Example: api.RegisterItemClass(Mod.Info.ModID + ".itemname", typeof(ItemClassName));
+
+        // Register custom block classes
+        api.RegisterBlockClass("BlockOllaFired", typeof(BlockOllaFired));
+
+        // Register block entity classes
+        api.RegisterBlockEntityClass("BlockEntityOllaFired", typeof(BlockEntityOllaFired));
     }
 }
