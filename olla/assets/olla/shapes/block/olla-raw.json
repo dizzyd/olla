@@ -1,0 +1,76 @@
+{
+  "__comment": "Raw unfired olla - uses raw clay texture",
+  "textureWidth": 16,
+  "textureHeight": 16,
+  "textures": {
+    "clay": "game:block/ceramic/raw/blue"
+  },
+  "elements": [
+    {
+      "__comment": "Bottom layer - base",
+      "name": "Bottom",
+      "from": [ 5, 0, 5 ],
+      "to": [ 11, 1.5, 11 ],
+      "faces": {
+        "north": { "texture": "#clay", "uv": [ 5, 14.5, 11, 16 ] },
+        "south": { "texture": "#clay", "uv": [ 5, 14.5, 11, 16 ] },
+        "east": { "texture": "#clay", "uv": [ 5, 14.5, 11, 16 ] },
+        "west": { "texture": "#clay", "uv": [ 5, 14.5, 11, 16 ] },
+        "up": { "texture": "#clay", "uv": [ 5, 5, 11, 11 ] },
+        "down": { "texture": "#clay", "uv": [ 5, 5, 11, 11 ] }
+      }
+    },
+    {
+      "__comment": "Lower body - expanding",
+      "name": "LowerBody",
+      "from": [ 4, 1.5, 4 ],
+      "to": [ 12, 5, 12 ],
+      "faces": {
+        "north": { "texture": "#clay", "uv": [ 4, 11, 12, 14.5 ] },
+        "south": { "texture": "#clay", "uv": [ 4, 11, 12, 14.5 ] },
+        "east": { "texture": "#clay", "uv": [ 4, 11, 12, 14.5 ] },
+        "west": { "texture": "#clay", "uv": [ 4, 11, 12, 14.5 ] },
+        "up": { "texture": "#clay", "uv": [ 4, 4, 12, 12 ] }
+      }
+    },
+    {
+      "__comment": "Middle body - widest part",
+      "name": "MidBody",
+      "from": [ 3, 5, 3 ],
+      "to": [ 13, 10, 13 ],
+      "faces": {
+        "north": { "texture": "#clay", "uv": [ 3, 6, 13, 11 ] },
+        "south": { "texture": "#clay", "uv": [ 3, 6, 13, 11 ] },
+        "east": { "texture": "#clay", "uv": [ 3, 6, 13, 11 ] },
+        "west": { "texture": "#clay", "uv": [ 3, 6, 13, 11 ] },
+        "up": { "texture": "#clay", "uv": [ 3, 3, 13, 13 ] }
+      }
+    },
+    {
+      "__comment": "Upper body - narrowing",
+      "name": "UpperBody",
+      "from": [ 4, 10, 4 ],
+      "to": [ 12, 12, 12 ],
+      "faces": {
+        "north": { "texture": "#clay", "uv": [ 4, 4, 12, 6 ] },
+        "south": { "texture": "#clay", "uv": [ 4, 4, 12, 6 ] },
+        "east": { "texture": "#clay", "uv": [ 4, 4, 12, 6 ] },
+        "west": { "texture": "#clay", "uv": [ 4, 4, 12, 6 ] },
+        "up": { "texture": "#clay", "uv": [ 4, 4, 12, 12 ] }
+      }
+    },
+    {
+      "__comment": "Neck - narrow opening",
+      "name": "Neck",
+      "from": [ 6, 12, 6 ],
+      "to": [ 10, 14, 10 ],
+      "faces": {
+        "north": { "texture": "#clay", "uv": [ 6, 2, 10, 4 ] },
+        "south": { "texture": "#clay", "uv": [ 6, 2, 10, 4 ] },
+        "east": { "texture": "#clay", "uv": [ 6, 2, 10, 4 ] },
+        "west": { "texture": "#clay", "uv": [ 6, 2, 10, 4 ] },
+        "up": { "texture": "#clay", "uv": [ 6, 6, 10, 10 ] }
+      }
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "code": "olla-raw",
+  "class": "Block",
+  behaviors: [
+    { name: "GroundStorable", properties: { layout: 'SingleCenter' } },
+    { name: "Unplaceable", }, // The ground storable obsoletes this being a block. Should be an item, but is kept a block for backwards compatibility
+    { name: "RightClickPickup"}
+  ],
+  "variantgroups": [
+    {
+      "code": "color", "states": [ "blue", "fire", "red" ]
+    }
+  ],
+  "creativeinventory": {
+    "general": ["*"],
+    "decorative": ["*"]
+  },
+  "shape": { "base": "olla:block/olla-raw" },
+  "textures": {
+    "all": { "base": "game:block/clay/{color}clay" }
+  },
+  "blockmaterial": "Ceramic",
+  "drawtype": "JSON",
+  "resistance": 0.8,
+  "requiressolidground": true,
+  "lightAbsorption": 0,
+  "sidesolid": {
+    "all": false
+  },
+  "sideopaque": {
+    "all": false
+  },
+  "materialDensity": 200,
+  "sounds": {
+    "place": "game:block/dirt",
+    "hit": "game:block/dirt",
+    "break": "game:block/dirt",
+    "walk": "game:walk/stone"
+  },
+  "combustibleProps": {
+    "meltingPoint": 600,
+    "meltingDuration": 45,
+    "smeltedRatio": 1,
+    "smeltingType": "fire",
+    "smeltedStack": {
+      "type": "block",
+      "code": "olla:olla-fired-{color}"
+    },
+    "requiresContainer": false
+  },
+  "drops": [
+    {
+      "type": "block",
+      "code": "olla:olla-raw-{color}",
+      "quantity": { "avg": 1 }
+    }
+  ],
+  "maxstacksize": 8,
+  "guiTransform": {
+    "translation": { "x": 0, "y": 0, "z": 0 },
+    "rotation": { "x": -22.5, "y": 45, "z": 0 },
+    "origin": { "x": 0.5, "y": 0.1, "z": 0.5 },
+    "scale": 2.5
+  },
+  "fpHandTransform": {
+    "translation": { "x": 0, "y": 0.2, "z": 0 },
+    "rotation": { "x": 0, "y": 0, "z": 0 },
+    "origin": { "x": 0.5, "y": 0, "z": 0.5 },
+    "scale": 2.5
+  },
+  "groundTransform": {
+    "translation": { "x": 0, "y": 0, "z": 0 },
+    "rotation": { "x": 0, "y": 0, "z": 0 },
+    "origin": { "x": 0.5, "y": 0, "z": 0.5 },
+    "scale": 3.5
+  },
+  "tpHandTransform": {
+    "translation": { "x": -0.95, "y": -0.55, "z": -0.68 },
+    "rotation": { "x": 0, "y": 0, "z": 0 },
+    "origin": { "x": 0.5, "y": 0, "z": 0.5 },
+    "scale": 0.75
+  },
+  "attributes": {
+    "handbook": {
+      "groupBy": ["olla-raw-*"]
+    }
+  }
+}

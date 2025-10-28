@@ -1,0 +1,89 @@
+{
+  "code": "olla-fired",
+  "class": "Block",
+  "variantgroups": [
+    {
+      "code": "color",
+      "states": [ "blue", "fire", "red" ]
+    }
+  ],
+  "creativeinventory": {
+    "general": ["*"],
+    "decorative": ["*"]
+  },
+  "shape": { "base": "olla:block/olla-fired" },
+  "blockmaterial": "Ceramic",
+  "drawtype": "JSON",
+  "resistance": 1.5,
+  "requiressolidground": true,
+  "lightAbsorption": 0,
+  "sidesolid": {
+    "all": false
+  },
+  "sideopaque": {
+    "all": false
+  },
+  "collisionbox": {
+    "x1": 0.1875,
+    "y1": 0,
+    "z1": 0.1875,
+    "x2": 0.8125,
+    "y2": 0.875,
+    "z2": 0.8125
+  },
+  "selectionbox": {
+    "x1": 0.1875,
+    "y1": 0,
+    "z1": 0.1875,
+    "x2": 0.8125,
+    "y2": 0.875,
+    "z2": 0.8125
+  },
+  "materialDensity": 200,
+  "textures": {
+    "all": { "base": "game:block/clay/hardened/{color}" }
+  },
+  "sounds": {
+    "place": "game:block/ceramicvessel",
+    "hit": "game:block/ceramicvessel",
+    "break": "game:block/ceramicvessel",
+    "walk": "game:walk/stone"
+  },
+  "drops": [
+    {
+      "type": "block",
+      "code": "olla:olla-fired-{color}",
+      "quantity": { "avg": 1 }
+    }
+  ],
+  "maxstacksize": 8,
+  "guiTransform": {
+    "translation": { "x": 0, "y": 0, "z": 0 },
+    "rotation": { "x": -22.5, "y": 45, "z": 0 },
+    "origin": { "x": 0.5, "y": 0.1, "z": 0.5 },
+    "scale": 2.5
+  },
+  "fpHandTransform": {
+    "translation": { "x": 0, "y": 0.2, "z": 0 },
+    "rotation": { "x": 0, "y": 0, "z": 0 },
+    "origin": { "x": 0.5, "y": 0, "z": 0.5 },
+    "scale": 2.5
+  },
+  "groundTransform": {
+    "translation": { "x": 0, "y": 0, "z": 0 },
+    "rotation": { "x": 0, "y": 0, "z": 0 },
+    "origin": { "x": 0.5, "y": 0, "z": 0.5 },
+    "scale": 3.5
+  },
+  "tpHandTransform": {
+    "translation": { "x": -0.95, "y": -0.55, "z": -0.68 },
+    "rotation": { "x": 0, "y": 0, "z": 0 },
+    "origin": { "x": 0.5, "y": 0, "z": 0.5 },
+    "scale": 0.75
+  },
+  "attributes": {
+    "handbook": {
+      "groupBy": ["olla-fired-*"]
+    }
+  }
+}

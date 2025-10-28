@@ -1,0 +1,122 @@
+{
+  "__comment": "Olla - Traditional irrigation pot with wide body and narrow neck",
+  "textureWidth": 16,
+  "textureHeight": 16,
+  "textures": {
+    "ceramic": "game:block/clay/hardened/blue"
+  },
+  "elements": [
+    {
+      "__comment": "Bottom layer - base",
+      "name": "Bottom",
+      "from": [ 5, 0, 5 ],
+      "to": [ 11, 1.5, 11 ],
+      "faces": {
+        "north": { "texture": "#ceramic", "uv": [ 5, 14.5, 11, 16 ] },
+        "south": { "texture": "#ceramic", "uv": [ 5, 14.5, 11, 16 ] },
+        "east": { "texture": "#ceramic", "uv": [ 5, 14.5, 11, 16 ] },
+        "west": { "texture": "#ceramic", "uv": [ 5, 14.5, 11, 16 ] },
+        "up": { "texture": "#ceramic", "uv": [ 5, 5, 11, 11 ] },
+        "down": { "texture": "#ceramic", "uv": [ 5, 5, 11, 11 ] }
+      }
+    },
+    {
+      "__comment": "Lower body - expanding",
+      "name": "LowerBody",
+      "from": [ 4, 1.5, 4 ],
+      "to": [ 12, 5, 12 ],
+      "faces": {
+        "north": { "texture": "#ceramic", "uv": [ 4, 11, 12, 14.5 ] },
+        "south": { "texture": "#ceramic", "uv": [ 4, 11, 12, 14.5 ] },
+        "east": { "texture": "#ceramic", "uv": [ 4, 11, 12, 14.5 ] },
+        "west": { "texture": "#ceramic", "uv": [ 4, 11, 12, 14.5 ] },
+        "up": { "texture": "#ceramic", "uv": [ 4, 4, 12, 12 ] }
+      }
+    },
+    {
+      "__comment": "Middle body - widest part",
+      "name": "MidBody",
+      "from": [ 3, 5, 3 ],
+      "to": [ 13, 10, 13 ],
+      "faces": {
+        "north": { "texture": "#ceramic", "uv": [ 3, 6, 13, 11 ] },
+        "south": { "texture": "#ceramic", "uv": [ 3, 6, 13, 11 ] },
+        "east": { "texture": "#ceramic", "uv": [ 3, 6, 13, 11 ] },
+        "west": { "texture": "#ceramic", "uv": [ 3, 6, 13, 11 ] },
+        "up": { "texture": "#ceramic", "uv": [ 3, 3, 13, 13 ] }
+      }
+    },
+    {
+      "__comment": "Upper body - narrowing",
+      "name": "UpperBody",
+      "from": [ 4, 10, 4 ],
+      "to": [ 12, 12, 12 ],
+      "faces": {
+        "north": { "texture": "#ceramic", "uv": [ 4, 4, 12, 6 ] },
+        "south": { "texture": "#ceramic", "uv": [ 4, 4, 12, 6 ] },
+        "east": { "texture": "#ceramic", "uv": [ 4, 4, 12, 6 ] },
+        "west": { "texture": "#ceramic", "uv": [ 4, 4, 12, 6 ] },
+        "up": { "texture": "#ceramic", "uv": [ 4, 4, 12, 12 ] }
+      }
+    },
+    {
+      "__comment": "Neck - narrow opening",
+      "name": "Neck",
+      "from": [ 6, 12, 6 ],
+      "to": [ 10, 14, 10 ],
+      "faces": {
+        "north": { "texture": "#ceramic", "uv": [ 6, 2, 10, 4 ] },
+        "south": { "texture": "#ceramic", "uv": [ 6, 2, 10, 4 ] },
+        "east": { "texture": "#ceramic", "uv": [ 6, 2, 10, 4 ] },
+        "west": { "texture": "#ceramic", "uv": [ 6, 2, 10, 4 ] },
+        "up": { "texture": "#ceramic", "uv": [ 6, 6, 10, 10 ] }
+      }
+    },
+    {
+      "__comment": "Interior hollow - bottom",
+      "name": "InteriorBottom",
+      "from": [ 5.5, 1.5, 5.5 ],
+      "to": [ 10.5, 2, 10.5 ],
+      "faces": {
+        "down": { "texture": "#ceramic", "uv": [ 5.5, 5.5, 10.5, 10.5 ] }
+      }
+    },
+    {
+      "__comment": "Interior hollow - lower walls",
+      "name": "InteriorLower",
+      "from": [ 4.5, 2, 4.5 ],
+      "to": [ 11.5, 5, 11.5 ],
+      "faces": {
+        "north": { "texture": "#ceramic", "uv": [ 4.5, 11, 11.5, 14 ], "enabled": false },
+        "south": { "texture": "#ceramic", "uv": [ 4.5, 11, 11.5, 14 ], "enabled": false },
+        "east": { "texture": "#ceramic", "uv": [ 4.5, 11, 11.5, 14 ], "enabled": false },
+        "west": { "texture": "#ceramic", "uv": [ 4.5, 11, 11.5, 14 ], "enabled": false }
+      }
+    },
+    {
+      "__comment": "Interior hollow - middle",
+      "name": "InteriorMid",
+      "from": [ 3.5, 5, 3.5 ],
+      "to": [ 12.5, 10, 12.5 ],
+      "faces": {
+        "north": { "texture": "#ceramic", "uv": [ 3.5, 6, 12.5, 11 ], "enabled": false },
+        "south": { "texture": "#ceramic", "uv": [ 3.5, 6, 12.5, 11 ], "enabled": false },
+        "east": { "texture": "#ceramic", "uv": [ 3.5, 6, 12.5, 11 ], "enabled": false },
+        "west": { "texture": "#ceramic", "uv": [ 3.5, 6, 12.5, 11 ], "enabled": false }
+      }
+    },
+    {
+      "__comment": "Interior hollow - upper",
+      "name": "InteriorUpper",
+      "from": [ 6.5, 10, 6.5 ],
+      "to": [ 9.5, 14, 9.5 ],
+      "faces": {
+        "north": { "texture": "#ceramic", "uv": [ 6.5, 2, 9.5, 6 ], "enabled": false },
+        "south": { "texture": "#ceramic", "uv": [ 6.5, 2, 9.5, 6 ], "enabled": false },
+        "east": { "texture": "#ceramic", "uv": [ 6.5, 2, 9.5, 6 ], "enabled": false },
+        "west": { "texture": "#ceramic", "uv": [ 6.5, 2, 9.5, 6 ], "enabled": false },
+        "up": { "texture": "#ceramic", "uv": [ 6.5, 6.5, 9.5, 9.5 ] }
+      }
+    }
+  ]
+}

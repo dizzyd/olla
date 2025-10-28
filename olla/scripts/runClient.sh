@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 VINTAGE_STORY=$1
 PROJECT_DIR=$2
 CONFIGURATION=$3
