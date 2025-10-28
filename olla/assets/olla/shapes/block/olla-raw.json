@@ -63,12 +63,12 @@
       "__comment": "Neck - narrow opening",
       "name": "Neck",
       "from": [ 6, 12, 6 ],
-      "to": [ 10, 14, 10 ],
+      "to": [ 10, 18, 10 ],
       "faces": {
-        "north": { "texture": "#clay", "uv": [ 6, 2, 10, 4 ] },
-        "south": { "texture": "#clay", "uv": [ 6, 2, 10, 4 ] },
-        "east": { "texture": "#clay", "uv": [ 6, 2, 10, 4 ] },
-        "west": { "texture": "#clay", "uv": [ 6, 2, 10, 4 ] },
+        "north": { "texture": "#clay", "uv": [ 6, 0, 10, 6 ] },
+        "south": { "texture": "#clay", "uv": [ 6, 0, 10, 6 ] },
+        "east": { "texture": "#clay", "uv": [ 6, 0, 10, 6 ] },
+        "west": { "texture": "#clay", "uv": [ 6, 0, 10, 6 ] },
         "up": { "texture": "#clay", "uv": [ 6, 6, 10, 10 ] }
       }
     }

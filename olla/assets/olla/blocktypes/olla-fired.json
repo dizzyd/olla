@@ -1,6 +1,7 @@
 {
   "code": "olla-fired",
-  "class": "Block",
+  "class": "BlockOllaFired",
+  "entityClass": "BlockEntityOllaFired",
   "variantgroups": [
     {
       "code": "color",
@@ -28,7 +29,7 @@
     "y1": 0,
     "z1": 0.1875,
     "x2": 0.8125,
-    "y2": 0.875,
+    "y2": 1.125,
     "z2": 0.8125
   },
   "selectionbox": {
@@ -36,7 +37,7 @@
     "y1": 0,
     "z1": 0.1875,
     "x2": 0.8125,
-    "y2": 0.875,
+    "y2": 1.125,
     "z2": 0.8125
   },
   "materialDensity": 200,

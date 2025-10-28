@@ -2,7 +2,7 @@
   "ingredient": {
     "type": "item",
     "code": "game:clay-*",
-    "name": "type",
+    "name": "color",
     "allowedVariants": [ "blue", "fire", "red" ]
   },
   "pattern": [
@@ -154,6 +154,6 @@
   "name": "Raw Olla",
   "output": {
     "type": "block",
-    "code": "olla:olla-raw-{type}"
+    "code": "olla:olla-raw-{color}"
   }
 }
