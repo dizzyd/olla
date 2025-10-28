@@ -6,13 +6,20 @@
     {
       "code": "color",
       "states": [ "blue", "fire", "red" ]
+    },
+    {
+      "code": "state",
+      "states": [ "normal", "buried" ]
     }
   ],
   "creativeinventory": {
-    "general": ["*"],
-    "decorative": ["*"]
+    "general": ["*-normal"],
+    "decorative": ["*-normal"]
   },
-  "shape": { "base": "olla:block/olla-fired" },
+  "shapeByType": {
+    "olla-fired-*-normal": { "base": "olla:block/olla-fired" },
+    "olla-fired-*-buried": { "base": "olla:block/olla-fired-buried" }
+  },
   "blockmaterial": "Ceramic",
   "drawtype": "JSON",
   "resistance": 1.5,
@@ -41,8 +48,14 @@
     "z2": 0.8125
   },
   "materialDensity": 200,
-  "textures": {
-    "all": { "base": "game:block/clay/hardened/{color}" }
+  "texturesByType": {
+    "*-normal": {
+      "all": { "base": "game:block/clay/hardened/{color}" }
+    },
+    "*-buried": {
+      "ceramic": { "base": "game:block/clay/hardened/{color}" },
+      "soil": { "base": "game:block/soil/fertmedium" }
+    }
   },
   "sounds": {
     "place": "game:block/ceramicvessel",
@@ -53,38 +66,38 @@
   "drops": [
     {
       "type": "block",
-      "code": "olla:olla-fired-{color}",
+      "code": "olla:olla-fired-{color}-normal",
       "quantity": { "avg": 1 }
     }
   ],
   "maxstacksize": 8,
   "guiTransform": {
-    "translation": { "x": 0, "y": 0, "z": 0 },
+    "translation": { "x": 0, "y": 0.1, "z": 0 },
     "rotation": { "x": -22.5, "y": 45, "z": 0 },
-    "origin": { "x": 0.5, "y": 0.1, "z": 0.5 },
-    "scale": 2.5
+    "origin": { "x": 0.5, "y": 0.5, "z": 0.5 },
+    "scale": 1.6
   },
   "fpHandTransform": {
-    "translation": { "x": 0, "y": 0.2, "z": 0 },
+    "translation": { "x": 0, "y": 0.4, "z": 0 },
     "rotation": { "x": 0, "y": 0, "z": 0 },
-    "origin": { "x": 0.5, "y": 0, "z": 0.5 },
-    "scale": 2.5
+    "origin": { "x": 0.5, "y": 0.2, "z": 0.5 },
+    "scale": 2.2
   },
   "groundTransform": {
     "translation": { "x": 0, "y": 0, "z": 0 },
     "rotation": { "x": 0, "y": 0, "z": 0 },
     "origin": { "x": 0.5, "y": 0, "z": 0.5 },
-    "scale": 3.5
+    "scale": 3.0
   },
   "tpHandTransform": {
-    "translation": { "x": -0.95, "y": -0.55, "z": -0.68 },
+    "translation": { "x": -0.95, "y": -0.45, "z": -0.68 },
     "rotation": { "x": 0, "y": 0, "z": 0 },
-    "origin": { "x": 0.5, "y": 0, "z": 0.5 },
-    "scale": 0.75
+    "origin": { "x": 0.5, "y": 0.2, "z": 0.5 },
+    "scale": 0.65
   },
   "attributes": {
     "handbook": {
-      "groupBy": ["olla-fired-*"]
+      "groupBy": ["olla-fired-*-normal"]
     }
   }
 }

@@ -2,7 +2,10 @@
   "block-olla-raw-blue": "Raw Blue Clay Olla",
   "block-olla-raw-fire": "Raw Fire Clay Olla",
   "block-olla-raw-red": "Raw Red Clay Olla",
-  "block-olla-fired-blue": "Blue Clay Olla",
-  "block-olla-fired-fire": "Fire Clay Olla",
-  "block-olla-fired-red": "Red Clay Olla"
+  "block-olla-fired-blue-normal": "Blue Clay Olla",
+  "block-olla-fired-fire-normal": "Fire Clay Olla",
+  "block-olla-fired-red-normal": "Red Clay Olla",
+  "block-olla-fired-blue-buried": "Blue Clay Olla (Buried)",
+  "block-olla-fired-fire-buried": "Fire Clay Olla (Buried)",
+  "block-olla-fired-red-buried": "Red Clay Olla (Buried)"
 }
