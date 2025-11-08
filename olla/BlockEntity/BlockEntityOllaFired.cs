@@ -25,6 +25,10 @@ namespace olla
         // 24 blocks * 1.25L = 30L total to fully saturate the area
         private const float LitersPerIntensity = 1.25f;
 
+        // Max catch-up time when chunk loads after being unloaded (like BEFarmland)
+        // Prevents extreme fast-forwarding if world time jumps significantly
+        private const double MaxCatchUpDays = 365.0;
+
         private float currentWaterLiters = 0f;
         private int lastBlocksIrrigated = 0;
         private double lastTickTotalHours = 0;
@@ -45,6 +49,9 @@ namespace olla
 
         private void OnServerGameTick(float dt)
         {
+            // Only update when chunk is fully loaded (like BEFarmland)
+            if (!(Api as ICoreServerAPI).World.IsFullyLoadedChunk(Pos)) return;
+
             if (Api?.World == null) return;
 
             double currentTotalHours = Api.World.Calendar.TotalHours;
@@ -56,15 +63,63 @@ namespace olla
                 return;
             }
 
-            // Calculate elapsed game time
+            // Calculate elapsed game time (includes time when chunk was unloaded!)
             double hoursElapsed = currentTotalHours - lastTickTotalHours;
+
+            // Time rollback safety: handle cases where saved time is ahead of current time
+            // (can happen with schematic imports or world time manipulation)
+            if (hoursElapsed < 0)
+            {
+                lastTickTotalHours = currentTotalHours;
+                return;
+            }
+
             lastTickTotalHours = currentTotalHours;
 
-            // Update irrigation with time scaling
-            UpdateIrrigation(hoursElapsed);
+            // Catch up irrigation with time scaling (handles both real-time and unloaded time)
+            CatchUpIrrigation(hoursElapsed);
         }
 
-        private bool IsBuried()
+        /// <summary>
+        /// Process irrigation for elapsed time using interval-based catch-up.
+        /// This simulates olla irrigation even when the chunk was unloaded,
+        /// similar to how BEFarmland catches up crop growth.
+        /// </summary>
+        private void CatchUpIrrigation(double totalHoursElapsed)
+        {
+            if (Api?.World?.BlockAccessor == null) return;
+            if (!HasWater) return;
+            if (!IsBuried()) return;
+
+            // Cap catch-up time to prevent extreme fast-forwarding (same as BEFarmland)
+            double maxCatchUpHours = MaxCatchUpDays * Api.World.Calendar.HoursPerDay;
+            totalHoursElapsed = Math.Min(totalHoursElapsed, maxCatchUpHours);
+
+            // Process irrigation in intervals (3-4 hour intervals like BEFarmland)
+            // This provides more realistic simulation than doing it all at once
+            double hoursProcessed = 0;
+            double intervalHours = 3.0 + Api.World.Rand.NextDouble(); // Random 3-4 hours
+
+            while (hoursProcessed < totalHoursElapsed && HasWater)
+            {
+                // Calculate hours for this interval (don't exceed remaining time)
+                double hoursThisInterval = Math.Min(intervalHours, totalHoursElapsed - hoursProcessed);
+
+                // Do the irrigation for this interval
+                UpdateIrrigation(hoursThisInterval);
+
+                // Advance time
+                hoursProcessed += hoursThisInterval;
+
+                // Randomize next interval (3-4 hours)
+                intervalHours = 3.0 + Api.World.Rand.NextDouble();
+
+                // Early exit if we ran out of water
+                if (!HasWater) break;
+            }
+        }
+
+        public bool IsBuried()
         {
             if (Api?.World?.BlockAccessor == null) return false;
 
