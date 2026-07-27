@@ -13,7 +13,9 @@ namespace olla
     /// This allows farmland to "see" buried ollas as water sources during catch-up,
     /// preventing the race condition where farmland dries out before olla irrigation runs.
     /// </summary>
-    [HarmonyPatch(typeof(BlockEntityFarmland), "GetNearbyWaterDistance")]
+    // As of 1.22 GetNearbyWaterDistance and EnumWaterSearchResult live on
+    // BlockEntitySoilNutrition, the new base class of BlockEntityFarmland.
+    [HarmonyPatch(typeof(BlockEntitySoilNutrition), "GetNearbyWaterDistance")]
     public class Patch_BEFarmland_GetNearbyWaterDistance
     {
         /// <summary>
@@ -31,8 +33,12 @@ namespace olla
         /// proximity to ollas, just like it does with ponds/water blocks.
         /// Uses caching to avoid repeated 5x5 searches for the same farmland blocks.
         /// </summary>
-        static void Postfix(BlockEntityFarmland __instance, ref float __result, ref object result)
+        static void Postfix(BlockEntitySoilNutrition __instance, ref float __result, ref object result)
         {
+            // The patched method now lives on the base class, which BlockEntityBerryBushFarmland
+            // also derives from. Restrict to farmland to keep pre-1.22 behaviour.
+            if (__instance is not BlockEntityFarmland) return;
+
             // EnumWaterSearchResult is protected, so we use object and check by name
             string resultStr = result?.ToString();
 
@@ -112,7 +118,7 @@ namespace olla
                 __result = Math.Min(__result, closestOllaDistance);
 
                 // Set result to "Found" using reflection (EnumWaterSearchResult is protected)
-                var enumType = typeof(BlockEntityFarmland).GetNestedType("EnumWaterSearchResult",
+                var enumType = typeof(BlockEntitySoilNutrition).GetNestedType("EnumWaterSearchResult",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
                 if (enumType != null)
                 {
