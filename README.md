@@ -270,8 +270,22 @@ Contributions are welcome! Please ensure:
 
 ### Version History
 
-- **0.9.0**: Added burial mechanic, balancing improvements
-- Earlier versions: Initial implementation of blocks, irrigation mechanics, and visual models
+- **1.2.0**: Overlapping water sources blend into a single moisture floor instead
+  of only the closest one counting, and natural water joins the blend. Hydrate or
+  Diedrate's clean fresh water types are accepted; salt and polluted water are
+  refused with a reason. Irrigation no longer bills for twice the moisture it
+  delivers, so a tank lasts as long as the tooltip always claimed. The farmland
+  patch is applied server-side only, and an in-game test suite was added.
+- **1.1.0**: Vintage Story 1.22 compatibility — retargeted to `net10.0`, the
+  farmland patch moved to `BlockEntitySoilNutrition` (where 1.22 relocated
+  `GetNearbyWaterDistance`), and the `game` dependency raised to 1.22.0.
+- **1.0.0**: Reworked the irrigation maths to follow farmland's own catch-up
+  model, and added the Harmony hook that lets farmland see a buried olla as a
+  water source — which is what keeps soil from drying out while a chunk is
+  unloaded.
+- **0.9.1**: Burial mechanic, a round of balancing, and a fix for water held in
+  stacks of containers.
+- **0.1.0**: Initial implementation — blocks, irrigation and models.
 
 ## License
 
