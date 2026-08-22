@@ -17,6 +17,15 @@ public class OllaModSystem : ModSystem
         // Register block entity classes
         api.RegisterBlockEntityClass("BlockEntityOllaFired", typeof(BlockEntityOllaFired));
 
+        // Server side only. Farmland moisture is simulated on the server, and in
+        // singleplayer Start() runs once per side against the same assembly - so
+        // patching here registered the postfix twice and every call ran it twice.
+        //
+        // That was invisible while the patch only did Math.Min, which is idempotent.
+        // Blending is not: a second pass folds the same ollas into the already
+        // blended result, squaring their contribution.
+        if (api.Side != EnumAppSide.Server) return;
+
         // Apply Harmony patches to integrate ollas with farmland water detection
         harmony = new Harmony("com.dizzyd.olla");
         harmony.PatchAll();
