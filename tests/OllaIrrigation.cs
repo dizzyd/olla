@@ -65,6 +65,41 @@ namespace Olla.Tests
         }
 
         [VsTest(TimeoutMs = 90000)]
+        public async Task WateringIsBilledAtWhatItDelivers()
+        {
+            // BlockEntitySoilNutrition.WaterFarmland applies half of what it is
+            // handed. Billing the request rather than the delivery charged double,
+            // so a 60L olla saturated its area once where the tooltip promised
+            // twice. This pins the ratio at LitersPerIntensity (1.25 L per unit of
+            // moisture actually delivered) and fails if vanilla changes its dt/2.
+            var be = await PlaceOlla(BuriedOlla, litres: 60);
+
+            // Warm-up. Farmland placed with SetBlock never ran OnCreatedFromSoil,
+            // so lastMoistureLevelUpdateTotalDays is 0 and the first update dries
+            // it by the whole 96-hour retention window, swallowing the first
+            // watering entirely - litres drain while moisture stays at zero.
+            await Irrigate(hours: 1);
+
+            var farmland = World.BE<BlockEntityFarmland>(Farmland);
+            float moistureBefore = farmland.MoistureLevel;
+            float litresBefore = be.CurrentWaterLiters;
+
+            // One short window, so an hour of drying (1/96) stays small next to
+            // watering (0.48 intensity/hour at distance 1).
+            await Irrigate(hours: 1);
+
+            float delivered = farmland.MoistureLevel - moistureBefore;
+            float spent = litresBefore - be.CurrentWaterLiters;
+
+            Assert.Greater(delivered, 0f, "the hour actually moved the moisture");
+            Log($"delivered {delivered:F4} moisture for {spent:F4} L => {spent / delivered:F3} L per unit");
+
+            // Tolerance covers the hour of drying counted against delivery but not
+            // against the bill; without the fix this ratio is ~2.6.
+            Assert.InRange(spent / delivered, 1.20, 1.36, "litres per unit of moisture delivered");
+        }
+
+        [VsTest(TimeoutMs = 90000)]
         public async Task AnUnburiedOllaDoesNotIrrigate()
         {
             // The state variant is the whole difference: an olla sat on the

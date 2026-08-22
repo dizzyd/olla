@@ -24,10 +24,20 @@ namespace olla
         // Farther blocks get reduced rate (rate / distance)
         private const float MaxWateringIntensityPerGameHour = 0.48f;
 
-        // Water consumption: intensity × 1.25 = liters
+        // Water consumption: moisture delivered × 1.25 = liters
         // Fully saturating one block (0 to 1.0) costs 1.25L
         // 24 blocks * 1.25L = 30L total to fully saturate the area
         private const float LitersPerIntensity = 1.25f;
+
+        // BlockEntitySoilNutrition.WaterFarmland applies half of what it is handed
+        // (moistureLevel += dt / 2), so a request lands as half that much moisture.
+        // Billing the request rather than the delivery charged double, which made
+        // the figures above - and the ones on the item tooltip - twice as good as
+        // the mod actually behaved.
+        //
+        // Pinned by WateringIsBilledAtWhatItDelivers, so this going stale fails a
+        // test rather than quietly doubling everyone's water use again.
+        private const float WaterFarmlandDeliveryFactor = 0.5f;
 
         // Max catch-up time when chunk loads after being unloaded (like BEFarmland)
         // Prevents extreme fast-forwarding if world time jumps significantly
@@ -240,8 +250,18 @@ namespace olla
                 // Apply water to soil - don't water neighbors since we're already handling the full 5x5 area
                 farmland.WaterFarmland(wateringAmount, false);
 
-                // Return liters consumed (intensity × liters per unit intensity)
-                return wateringAmount * LitersPerIntensity;
+                // Bill for the moisture that actually landed, not for what was asked
+                // for. Capped at the deficit because WaterFarmland clamps at 1.0.
+                //
+                // Deliberately not measured as (MoistureLevel after - before):
+                // WaterFarmland also runs updateMoistureLevel, which applies drying
+                // and the minMoisture floor. That floor is the olla's own doing and
+                // costs nothing, so farmland sitting below it would bill the olla
+                // for water it never poured.
+                float delivered = Math.Min(wateringAmount * WaterFarmlandDeliveryFactor, moistureDeficit);
+
+                // Return liters consumed (moisture delivered × liters per unit)
+                return delivered * LitersPerIntensity;
             }
             catch
             {
