@@ -100,35 +100,6 @@ olla/
 tests/                    # In-game test suite (see Testing)
 ```
 
-### Testing
-
-In-game tests live in `tests/` and run against a real game via
-[vstestkit](../vstestkit):
-
-```bash
-cd ../vstestkit
-
-# headless: blending arithmetic, irrigation, water-code predicate
-bash scripts/run.sh ../olla/tests --mod ../olla/olla
-
-# singleplayer + Hydrate or Diedrate: adds the bucket-in-hand fill tests
-cairn-cli sync ollahod
-bash scripts/run.sh ../olla/tests --mod ../olla/olla \
-     --mods ~/.cairn/packs/ollahod/Mods --client
-```
-
-**Run the client form before releasing.** Two bugs here were invisible headless
-and only appear in singleplayer, where the mod loads on both sides:
-
-- `ModSystem.Start()` runs once per side against the same assembly, so a
-  `PatchAll()` there registers the Harmony postfix **twice**. That was harmless
-  while the patch only did `Math.Min` — applying it twice changes nothing — and
-  silently doubled every olla's contribution once blending arrived. The patch is
-  now server-side only, and `ThePatchIsRegisteredExactlyOnce` guards it.
-- The client keeps its own copy of the inventory. A test that fills a bucket
-  server-side without `MarkDirty` leaves the client holding an empty one, which
-  makes fill tests fail and *refusal* tests pass for the wrong reason.
-
 ### Building
 
 The project uses Cake Frosting for build automation.
@@ -158,7 +129,31 @@ bash scripts/run.sh ../olla/tests --mod ../olla/olla
 ```
 
 That builds the mod, boots a headless server with olla loaded, runs the suite and
-exits non-zero on failure. Roughly 4 seconds for the seven tests.
+exits non-zero on failure — about 7 seconds.
+
+Some tests need a real client, and the Hydrate or Diedrate compatibility tests
+need that mod loaded. Both come from one longer invocation:
+
+```bash
+cairn-cli sync ollahod                       # H&D -> ~/.cairn/packs/ollahod/Mods
+bash scripts/run.sh ../olla/tests --mod ../olla/olla \
+     --mods ~/.cairn/packs/ollahod/Mods --client
+```
+
+**Run that form before releasing.** Two bugs here were invisible headless and
+appear only in singleplayer, where the mod loads on both sides:
+
+- `ModSystem.Start()` runs once per side against the same assembly, so a
+  `PatchAll()` there registers the Harmony postfix **twice**. Harmless while the
+  patch only did `Math.Min` — applying it twice changes nothing — and silently
+  doubled every olla's contribution once blending arrived. The patch is now
+  server-side only, and `ThePatchIsRegisteredExactlyOnce` guards it.
+- The client keeps its own copy of the inventory. A test that fills a bucket
+  server-side without `MarkDirty` leaves the client holding an empty one, which
+  makes fill tests fail and *refusal* tests pass for the wrong reason.
+
+Without the H&D pack those tests log "this test proved nothing" and pass, so read
+the log line rather than the green tick.
 
 The tests are plain `.cs` files, compiled inside the game by the Roslyn it already
 ships — there is nothing to build in `tests/`. `tests/olla.tests.csproj` exists
@@ -181,15 +176,12 @@ the compiler:
 
 What is covered:
 
-| test | asserts |
+| suite | asserts |
 |---|---|
-| `ModIsLoaded` | the mod loaded and its blocks registered |
-| `BuriedWateredOllaMoistensNearbyFarmland` | adjacent farmland gains moisture |
-| `IrrigationConsumesWater` | watering actually costs litres |
-| `AnUnburiedOllaDoesNotIrrigate` | the `state` variant gate works |
-| `AnEmptyOllaDoesNotIrrigate` | no water, no effect |
-| `FarmlandOutsideTheFiveByFiveIsUntouched` | the range limit holds |
-| `OllaShortensTheWaterDistanceVanillaReports` | the Harmony patch is attached and blending |
+| `OllaIrrigation` | the block entity — burial and empty gates, the range limit, that watering costs the litres it delivers, and that the patch is attached at all |
+| `OllaBlending` | the moisture floor — blend arithmetic against vanilla's curve, the olla cache, and that the patch is registered exactly once |
+| `OllaWaterTypes` | which liquids an olla accepts, checked against the live item registry |
+| `OllaFilling` | a real player filling one from a bucket, vanilla and Hydrate or Diedrate; needs `--client` |
 
 Two things worth knowing if you add tests:
 
