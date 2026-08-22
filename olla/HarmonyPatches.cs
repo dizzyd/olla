@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Threading;
 using HarmonyLib;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
@@ -12,6 +14,11 @@ namespace olla
     /// Harmony patches to integrate ollas with Vintage Story's farmland water detection system.
     /// This allows farmland to "see" buried ollas as water sources during catch-up,
     /// preventing the race condition where farmland dries out before olla irrigation runs.
+    ///
+    /// Vanilla turns the returned water distance into a moisture floor via
+    /// minMoisture = clamp(1 - distance / 4), so distance 0/1/2/3 means 100%/75%/50%/25%.
+    /// Because that distance is a float, several water sources can be blended into a single
+    /// fractional distance without touching vanilla's own moisture math.
     /// </summary>
     // As of 1.22 GetNearbyWaterDistance and EnumWaterSearchResult live on
     // BlockEntitySoilNutrition, the new base class of BlockEntityFarmland.
@@ -19,19 +26,43 @@ namespace olla
     public class Patch_BEFarmland_GetNearbyWaterDistance
     {
         /// <summary>
-        /// Cache of olla positions for each farmland block to avoid repeated searches.
-        /// Key: farmland position, Value: (olla position, distance)
-        /// BlockPos implements GetHashCode() and Equals() properly, so we can use it directly as a key.
-        /// Thread-safe: Uses ConcurrentDictionary because farmland updates may happen on multiple threads
-        /// during chunk loading/unloading operations.
+        /// Distance at which a water source stops contributing any moisture at all.
+        /// Mirrors the divisor in vanilla's minMoisture = clamp(1 - distance / 4).
         /// </summary>
-        private static readonly ConcurrentDictionary<BlockPos, (BlockPos ollaPos, float distance)> ollaCache = new();
-        
+        private const float MoistureFalloffDistance = 4f;
+
         /// <summary>
-        /// After farmland searches for water blocks, also search for buried ollas with water.
-        /// This ensures farmland maintains a minimum moisture level (minMoisture) based on
-        /// proximity to ollas, just like it does with ponds/water blocks.
-        /// Uses caching to avoid repeated 5x5 searches for the same farmland blocks.
+        /// Cache of the irrigating ollas found for each farmland block, to avoid repeating the
+        /// 5x5 search on every water check. BlockPos implements GetHashCode()/Equals() properly,
+        /// so it works directly as a key.
+        /// Thread-safe: farmland updates may happen on multiple threads during chunk load/unload.
+        /// </summary>
+        private static readonly ConcurrentDictionary<BlockPos, BlockPos[]> ollaCache = new();
+
+        /// <summary>
+        /// Bumped whenever any olla appears, disappears, or crosses the empty/non-empty line.
+        /// Cached searches are only valid for the generation they were taken in - without this a
+        /// farmland that already cached one olla would never notice a second one being added,
+        /// which is precisely the case blending exists to reward.
+        /// </summary>
+        private static int generation;
+        private static int lastClearedGeneration;
+
+        /// <summary>Cached reflection lookup of the protected EnumWaterSearchResult.Found value.</summary>
+        private static object foundResult;
+
+        /// <summary>
+        /// Retire every cached olla search. Called by ollas on placement, removal, burial and on
+        /// the transitions into and out of "has water".
+        /// </summary>
+        public static void InvalidateOllaCache()
+        {
+            Interlocked.Increment(ref generation);
+        }
+
+        /// <summary>
+        /// After farmland searches for water blocks, also search for buried ollas with water and
+        /// blend every source it can see into one moisture floor.
         /// </summary>
         static void Postfix(BlockEntitySoilNutrition __instance, ref float __result, ref object result)
         {
@@ -42,89 +73,142 @@ namespace olla
             // EnumWaterSearchResult is protected, so we use object and check by name
             string resultStr = result?.ToString();
 
-            // Early exit conditions:
-            // 1. Deferred: Chunk isn't fully loaded, can't search neighboring chunks
+            // Chunk isn't fully loaded, so neighbouring chunks can't be searched. Leave the
+            // deferral intact so vanilla retries rather than committing to a partial answer.
             if (resultStr == "Deferred") return;
 
-            // 2. Found close water: Distance 0-1 gives minMoisture 0.75-1.0, ollas can't improve
-            // But if water is far (distance 2-4), an olla might be closer and provide better moisture
-            if (resultStr == "Found" && __result <= 1f) return;
+            // Distance 0 is already a 100% moisture floor - nothing left for an olla to add.
+            // Anything further out can still be improved by blending, including distance 1.
+            if (resultStr == "Found" && __result <= 0f) return;
+
+            // Clearing wholesale on a generation bump both invalidates stale entries and keeps
+            // the dictionary from growing without bound as farmland is created and destroyed.
+            int currentGeneration = Volatile.Read(ref generation);
+            if (currentGeneration != lastClearedGeneration)
+            {
+                // Clear before recording the generation: a thread that repopulates in between
+                // does so from a fresh search, whereas the other order can drop a fresh entry.
+                ollaCache.Clear();
+                lastClearedGeneration = currentGeneration;
+            }
 
             IBlockAccessor ba = __instance.Api.World.BlockAccessor;
             BlockPos farmlandPos = __instance.Pos;
 
-            float closestOllaDistance = 99f;
-            bool foundOlla = false;
-            BlockPos cachedOllaPos = null;
-
-            // Step 1: Check cache first
-            if (ollaCache.TryGetValue(farmlandPos, out var cached))
+            // Re-verify the cached ollas rather than trusting them: an olla can run dry between
+            // generation bumps only via paths that bump, but chunk unloads are cheap to tolerate.
+            if (!ollaCache.TryGetValue(farmlandPos, out BlockPos[] ollaPositions) ||
+                !AllStillIrrigating(ba, ollaPositions))
             {
-                // Verify cached olla is still valid (still exists, buried, and has water)
-                // Just check block entity directly - much faster than block code/variant checks
-                if (ba.GetBlockEntity(cached.ollaPos) is BlockEntityOllaFired cachedOlla &&
-                    cachedOlla.IsBuried() &&
-                    cachedOlla.HasWater)
-                {
-                    // Cache hit! Use cached result
-                    closestOllaDistance = cached.distance;
-                    foundOlla = true;
-                    cachedOllaPos = cached.ollaPos;
-                }
-                else
-                {
-                    // Cache miss or invalid - remove from cache
-                    ollaCache.TryRemove(farmlandPos, out _);
-                }
+                ollaPositions = FindIrrigatingOllas(ba, farmlandPos);
+
+                if (ollaPositions.Length > 0) ollaCache[farmlandPos] = ollaPositions;
+                else ollaCache.TryRemove(farmlandPos, out _);
             }
 
-            // Step 2: If no valid cache, do full search
-            if (!foundOlla)
-            {
-                // Search for buried ollas in 5x5 area around farmland (olla range is 2 blocks)
-                for (int dx = -2; dx <= 2; dx++)
-                {
-                    for (int dz = -2; dz <= 2; dz++)
-                    {
-                        BlockPos ollaPos = farmlandPos.AddCopy(dx, 0, dz);
+            if (ollaPositions.Length == 0) return;
 
-                        // Check block entity directly - skip all block code/variant string checks
-                        if (ba.GetBlockEntity(ollaPos) is BlockEntityOllaFired olla &&
-                            olla.IsBuried() &&
-                            olla.HasWater)
-                        {
-                            // Use Chebyshev distance (max of absolute differences) to match vanilla behavior
-                            int ollaDistance = Math.Max(Math.Abs(dx), Math.Abs(dz));
-                            if (ollaDistance < closestOllaDistance)
-                            {
-                                closestOllaDistance = ollaDistance;
-                                cachedOllaPos = ollaPos.Copy();
-                                foundOlla = true;
-                            }
-                        }
+            // Blend every source into a single moisture floor as a probabilistic union: each
+            // source wets whatever share of the block the others left dry. Two ollas at distance
+            // 2 (50% each) give 75% rather than 50%, three give 87.5%, and the result approaches
+            // but never reaches 100% - full saturation still needs a source right alongside.
+            //
+            // The vanilla water distance joins the blend as just another source. When it found
+            // nothing it is 99, which clamps to zero moisture and leaves the product untouched.
+            float dryness = 1f - MoistureFromDistance(__result);
+            foreach (BlockPos ollaPos in ollaPositions)
+            {
+                dryness *= 1f - MoistureFromDistance(ChebyshevDistance(farmlandPos, ollaPos));
+            }
+
+            // Express the blended floor back as the fractional distance vanilla expects. Every
+            // olla contributes at least 50%, so this is always an improvement on __result.
+            __result = Math.Min(__result, DistanceFromMoisture(1f - dryness));
+
+            object found = FoundResult();
+            if (found != null) result = found;
+        }
+
+        /// <summary>
+        /// Search the farmland's surroundings for buried ollas that still hold water.
+        /// Checking the block entity directly is far cheaper than block code/variant comparisons.
+        /// </summary>
+        private static BlockPos[] FindIrrigatingOllas(IBlockAccessor ba, BlockPos farmlandPos)
+        {
+            List<BlockPos> found = null;
+            int range = BlockEntityOllaFired.IrrigationRange;
+
+            for (int dx = -range; dx <= range; dx++)
+            {
+                for (int dz = -range; dz <= range; dz++)
+                {
+                    BlockPos ollaPos = farmlandPos.AddCopy(dx, 0, dz);
+
+                    if (ba.GetBlockEntity(ollaPos) is BlockEntityOllaFired olla &&
+                        olla.IsBuried() &&
+                        olla.HasWater)
+                    {
+                        (found ??= new List<BlockPos>()).Add(ollaPos);
                     }
                 }
-
-                // Cache the result if we found an olla
-                if (foundOlla && cachedOllaPos != null)
-                {
-                    ollaCache[farmlandPos] = (cachedOllaPos, closestOllaDistance);
-                }
             }
 
-            // Step 3: If we found an olla, use the closer of: existing water source or olla
-            if (foundOlla)
+            return found?.ToArray() ?? Array.Empty<BlockPos>();
+        }
+
+        /// <summary>
+        /// True only if every cached position still holds a buried olla with water in it.
+        /// A single failure rebuilds the whole entry, which also picks up any newly added ollas.
+        /// </summary>
+        private static bool AllStillIrrigating(IBlockAccessor ba, BlockPos[] ollaPositions)
+        {
+            foreach (BlockPos ollaPos in ollaPositions)
             {
-                __result = Math.Min(__result, closestOllaDistance);
-
-                // Set result to "Found" using reflection (EnumWaterSearchResult is protected)
-                var enumType = typeof(BlockEntitySoilNutrition).GetNestedType("EnumWaterSearchResult",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
-                if (enumType != null)
+                if (ba.GetBlockEntity(ollaPos) is not BlockEntityOllaFired olla ||
+                    !olla.IsBuried() ||
+                    !olla.HasWater)
                 {
-                    result = Enum.Parse(enumType, "Found");
+                    return false;
                 }
             }
+
+            return true;
+        }
+
+        /// <summary>Vanilla's minMoisture curve: distance 0/1/2/3 gives 100%/75%/50%/25%.</summary>
+        private static float MoistureFromDistance(float distance)
+        {
+            return GameMath.Clamp(1f - distance / MoistureFalloffDistance, 0f, 1f);
+        }
+
+        /// <summary>The inverse, so a blended moisture floor can be handed back as a distance.</summary>
+        private static float DistanceFromMoisture(float moisture)
+        {
+            return (1f - GameMath.Clamp(moisture, 0f, 1f)) * MoistureFalloffDistance;
+        }
+
+        /// <summary>Matches the metric vanilla uses for its own water block search.</summary>
+        private static int ChebyshevDistance(BlockPos a, BlockPos b)
+        {
+            return Math.Max(Math.Abs(a.X - b.X), Math.Abs(a.Z - b.Z));
+        }
+
+        /// <summary>
+        /// EnumWaterSearchResult is protected, so the Found value has to come from reflection.
+        /// It is declared on BlockEntitySoilNutrition itself, which is what GetNestedType needs -
+        /// GetNestedType does not search base types.
+        /// </summary>
+        private static object FoundResult()
+        {
+            if (foundResult == null)
+            {
+                Type enumType = typeof(BlockEntitySoilNutrition).GetNestedType(
+                    "EnumWaterSearchResult", BindingFlags.NonPublic | BindingFlags.Public);
+
+                if (enumType != null) foundResult = Enum.Parse(enumType, "Found");
+            }
+
+            return foundResult;
         }
 
         /// <summary>

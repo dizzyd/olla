@@ -13,7 +13,11 @@ namespace olla
     {
         // Water storage
         private const float MaxWaterLiters = 60f;
-        private const int IrrigationRange = 2; // 2 blocks in each direction = 5x5 area (25 blocks max)
+        /// <summary>
+        /// 2 blocks in each direction = 5x5 area (25 blocks max).
+        /// Public so the farmland water patch searches the same radius it irrigates.
+        /// </summary>
+        public const int IrrigationRange = 2;
 
         // Watering rate: max moisture intensity per game hour (per block at distance 0-1)
         // ~0.48 per hour means fully saturating a block takes about 2 game hours
@@ -45,6 +49,21 @@ namespace olla
             {
                 RegisterGameTickListener(OnServerGameTick, 5000); // Check every 5 seconds
             }
+
+            // A new olla in the world may be inside some farmland's search radius.
+            Patch_BEFarmland_GetNearbyWaterDistance.InvalidateOllaCache();
+        }
+
+        public override void OnBlockRemoved()
+        {
+            base.OnBlockRemoved();
+            Patch_BEFarmland_GetNearbyWaterDistance.InvalidateOllaCache();
+        }
+
+        public override void OnBlockUnloaded()
+        {
+            base.OnBlockUnloaded();
+            Patch_BEFarmland_GetNearbyWaterDistance.InvalidateOllaCache();
         }
 
         private void OnServerGameTick(float dt)
@@ -176,8 +195,12 @@ namespace olla
             // Consume water based on actual amount used
             if (totalWaterUsed > 0)
             {
+                bool hadWater = HasWater;
                 currentWaterLiters = Math.Max(0, currentWaterLiters - totalWaterUsed);
                 MarkDirty();
+
+                // Running dry removes this olla from every nearby farmland's moisture blend.
+                if (hadWater && !HasWater) Patch_BEFarmland_GetNearbyWaterDistance.InvalidateOllaCache();
             }
         }
 
@@ -231,9 +254,14 @@ namespace olla
         {
             if (currentWaterLiters >= MaxWaterLiters) return false;
 
+            bool hadWater = HasWater;
             float amountToAdd = Math.Min(liters, MaxWaterLiters - currentWaterLiters);
             currentWaterLiters += amountToAdd;
             MarkDirty();
+
+            // Filling an empty olla adds it back into every nearby farmland's moisture blend.
+            if (!hadWater && HasWater) Patch_BEFarmland_GetNearbyWaterDistance.InvalidateOllaCache();
+
             return true;
         }
 
