@@ -1,15 +1,45 @@
+using System.Collections.Generic;
 using System.Text;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using Vintagestory.API.Server;
 using Vintagestory.GameContent;
 
 namespace olla
 {
     public class BlockOllaFired : Block
     {
+        /// <summary>
+        /// Liquids an olla accepts, matched on the collectible's code path so the domain does not
+        /// matter. Vanilla only has "waterportion"; Hydrate or Diedrate replaces it with a
+        /// type-source-pollution variant set, of which we take only the clean, fresh ones.
+        /// Salt would poison the soil, and muddy/tainted/poisoned water is meant to be purified
+        /// before use - so those fall through to the rejection message below.
+        /// </summary>
+        private static readonly HashSet<string> AcceptedWaterCodes = new()
+        {
+            "waterportion",                       // vanilla
+            "boilingwaterportion",                // vanilla, off a boiling pot
+            "waterportion-fresh-rain-clean",      // Hydrate or Diedrate
+            "waterportion-fresh-distilled-clean",
+            "waterportion-fresh-well-clean",
+            "waterportion-boiled-natural-clean",
+            "waterportion-boiled-rain-clean",
+        };
+
+        /// <summary>
+        /// Whether an olla accepts a liquid, keyed on the collectible's code path so the
+        /// domain does not matter - Hydrate or Diedrate's replacements match the same way.
+        /// Public so the in-game suite can check it without driving a player through a GUI.
+        /// </summary>
+        public static bool AcceptsWaterCode(string codePath)
+        {
+            return codePath != null && AcceptedWaterCodes.Contains(codePath);
+        }
+
         public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
         {
             BlockEntityOllaFired be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityOllaFired;
@@ -42,8 +72,22 @@ namespace olla
 
             // Get the content using the interface (no manual attribute access!)
             ItemStack contentStack = liquidSource.GetContent(itemStack);
-            if (contentStack?.Collectible.Code?.Path != "waterportion") return false;
-            
+            string waterCode = contentStack?.Collectible.Code?.Path;
+            if (waterCode == null) return false;
+
+            if (!AcceptsWaterCode(waterCode))
+            {
+                // Held liquid is water of some kind, just not one an olla will take. Say so
+                // rather than silently doing nothing - otherwise it reads as a broken mod.
+                if (world.Side == EnumAppSide.Server && waterCode.Contains("water"))
+                {
+                    (byPlayer as IServerPlayer)?.SendIngameError(
+                        "olla-badwater", Lang.Get("olla:ingameerror-badwater"));
+                }
+
+                return false;
+            }
+
             // Only process the actual transfer on server side
             if (world.Side == EnumAppSide.Server)
             {
@@ -137,6 +181,10 @@ namespace olla
             dsc.AppendLine("Closest blocks get more water");
             dsc.AppendLine("Farther blocks get less water");
             dsc.AppendLine("~30L to fully saturate 24 blocks");
+            dsc.AppendLine("");
+            dsc.AppendLine("Overlapping ollas blend their moisture:");
+            dsc.AppendLine("two at the edge of each other's range");
+            dsc.AppendLine("hold soil at 75% instead of 50%");
             dsc.AppendLine("");
             dsc.AppendLine("Use soil block to bury (permanent)");
         }

@@ -7,5 +7,6 @@
   "block-olla-fired-red-normal": "Red Clay Olla",
   "block-olla-fired-blue-buried": "Blue Clay Olla (Buried)",
   "block-olla-fired-fire-buried": "Fire Clay Olla (Buried)",
-  "block-olla-fired-red-buried": "Red Clay Olla (Buried)"
+  "block-olla-fired-red-buried": "Red Clay Olla (Buried)",
+  "ingameerror-badwater": "An olla only takes clean, fresh water"
 }
