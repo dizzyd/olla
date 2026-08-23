@@ -323,6 +323,11 @@ Contributions are welcome! Please ensure:
 
 ### Version History
 
+- **1.3.0**: Added `IrrigationTarget` in `ModConfig/olla.json` — the moisture
+  level an olla works towards, capping both active irrigation and the blended
+  moisture floor. The default of `1.0` is the behaviour olla has always had;
+  lower it for farming overhauls like Farming Revamped, where crops have a
+  moisture band and soil that can never dry out kills them.
 - **1.2.1**: The clay forming pattern now matches the pot it produces. It shaped
   a squat flared bowl, 8 voxels tall and 15 wide at the rim, where the model is a
   tall narrow olla with a neck; every layer now follows the model. Clay cost is
