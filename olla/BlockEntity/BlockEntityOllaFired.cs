@@ -231,10 +231,13 @@ namespace olla
                 // Using dynamic to avoid hard reference to BlockEntityFarmland
                 dynamic farmland = farmlandBE;
 
-                // Calculate how much water needed to reach 1.0 (fully moist)
-                float moistureDeficit = 1.0f - farmland.MoistureLevel;
+                // Calculate how much water is needed to reach the configured target.
+                // Defaults to 1.0 - fully moist - which is what this always was.
+                float moistureDeficit = OllaConfig.Current.IrrigationTarget - farmland.MoistureLevel;
 
-                // If already at full moisture, nothing to do
+                // Already at or above the target, so nothing to do. Note this is a
+                // ceiling, not a set point: rain can push farmland past it and the
+                // olla simply stops rather than trying to dry anything out.
                 if (moistureDeficit <= 0f) return 0f;
 
                 // Scale watering rate by distance (distance 0 and 1 get full rate)
@@ -251,7 +254,9 @@ namespace olla
                 farmland.WaterFarmland(wateringAmount, false);
 
                 // Bill for the moisture that actually landed, not for what was asked
-                // for. Capped at the deficit because WaterFarmland clamps at 1.0.
+                // for. Capped at the deficit because that is where watering stops -
+                // at the target, or at WaterFarmland's own clamp of 1.0, whichever
+                // is lower.
                 //
                 // Deliberately not measured as (MoistureLevel after - before):
                 // WaterFarmland also runs updateMoistureLevel, which applies drying

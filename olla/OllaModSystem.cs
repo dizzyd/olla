@@ -26,6 +26,10 @@ public class OllaModSystem : ModSystem
         // blended result, squaring their contribution.
         if (api.Side != EnumAppSide.Server) return;
 
+        // Same reason, and it has to come before the patch: the postfix reads
+        // IrrigationTarget on every farmland water check.
+        OllaConfig.Load(api);
+
         // Apply Harmony patches to integrate ollas with farmland water detection
         harmony = new Harmony("com.dizzyd.olla");
         harmony.PatchAll();

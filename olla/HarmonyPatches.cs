@@ -81,6 +81,11 @@ namespace olla
             // Anything further out can still be improved by blending, including distance 1.
             if (resultStr == "Found" && __result <= 0f) return;
 
+            // A target of 0 turns the mod off; skip the search rather than doing the
+            // work and discovering at the end that the blend cannot beat vanilla.
+            float target = OllaConfig.Current.IrrigationTarget;
+            if (target <= 0f) return;
+
             // Clearing wholesale on a generation bump both invalidates stale entries and keeps
             // the dictionary from growing without bound as farmland is created and destroyed.
             int currentGeneration = Volatile.Read(ref generation);
@@ -121,9 +126,23 @@ namespace olla
                 dryness *= 1f - MoistureFromDistance(ChebyshevDistance(farmlandPos, ollaPos));
             }
 
-            // Express the blended floor back as the fractional distance vanilla expects. Every
-            // olla contributes at least 50%, so this is always an improvement on __result.
-            __result = Math.Min(__result, DistanceFromMoisture(1f - dryness));
+            // Cap the blend at the configured target. This is the ceiling that makes the
+            // setting worth having: without it, overlapping ollas walk the floor towards
+            // 100% no matter what the target is, and because the floor never decays the
+            // farmland can never dry out again. The vanilla source is capped along with
+            // the ollas here, but Math.Min below hands back whichever answer is wetter,
+            // so a real pond is never worsened by an olla being nearby.
+            float blended = Math.Min(1f - dryness, target);
+
+            // Express the blended floor back as the fractional distance vanilla expects.
+            float blendedDistance = DistanceFromMoisture(blended);
+
+            // Uncapped this was always an improvement, since every olla contributes at
+            // least 50%. Capped it need not be, so leave vanilla's own answer - and its
+            // search result - untouched when the blend has nothing to add.
+            if (blendedDistance >= __result) return;
+
+            __result = blendedDistance;
 
             object found = FoundResult();
             if (found != null) result = found;
