@@ -56,6 +56,11 @@ This is deliberately asymptotic - overlap always pays, but reaching a true 100% 
 needs a source right alongside the block. Laying out a grid so radii overlap is now a real
 planning decision rather than wasted pottery.
 
+The floor is also what keeps soil wet while a chunk is unloaded, and unlike active
+irrigation it costs no water and never decays. That is the right trade on vanilla and the
+wrong one under a farming overhaul where crops need to dry out - see
+[Configuration](#configuration) if you run one.
+
 ### Water Types
 
 An olla takes clean, fresh water only. Vanilla `waterportion` works, as do
@@ -63,6 +68,48 @@ An olla takes clean, fresh water only. Vanilla `waterportion` works, as do
 well and boiled water. Salt water is refused because it would poison the soil, and
 muddy/tainted/poisoned water is refused because it is meant to be purified first. Trying
 to pour one of those in tells you so rather than silently doing nothing.
+
+### Configuration
+
+Optional. On first launch the mod writes `ModConfig/olla.json` in your Vintage Story
+data directory with one setting:
+
+```json
+{
+  "IrrigationTarget": 1.0
+}
+```
+
+**`IrrigationTarget`** (0 to 1, default `1.0`) is the moisture level an olla works
+towards, and it caps *both* of the mod's mechanisms:
+
+- active irrigation stops adding water once farmland reaches it
+- the blended moisture floor cannot be pushed past it, however many ollas overlap
+  the same block
+
+The default is the behaviour olla has always had — water to saturation, and let a
+grid of overlapping ollas blend towards a 100% floor. On vanilla that is what you
+want, and there is no reason to change it.
+
+Lower it for farming overhauls that give crops a moisture **band** rather than
+"wetter is better". [Farming Revamped](https://mods.vintagestory.at/show/mod/52211)
+is the case this was added for: it damages crops held too wet, and caps its own
+watering can at 0.75 for exactly that reason. An uncapped olla pins its whole 5x5
+above that permanently — and because the moisture floor never decays, the soil can
+never dry out again, which kills the crop rather than feeding it. Around `0.6`
+suits it.
+
+Two things worth knowing:
+
+- It is **server-side**. On a multiplayer server the host's setting is the one in
+  effect; editing it on a client does nothing.
+- An olla is never a downgrade. A capped blend that comes out drier than the water
+  already beside the block is discarded, so burying pottery next to a pond cannot
+  make the soil worse than the pond alone.
+- `0` turns the mod's watering off entirely. There is no small non-zero value that
+  does something subtler: vanilla's own growth curve stops distinguishing moisture
+  below 10%, so anything under that is a disabled mod that looks enabled. The log
+  says so on startup, along with the target actually in effect.
 
 ### Installation
 
@@ -94,6 +141,7 @@ olla/
 ├── Block/                # Block behavior classes
 ├── BlockEntity/          # Block entity classes (game logic)
 ├── OllaModSystem.cs      # Mod entry point
+├── OllaConfig.cs         # ModConfig/olla.json
 ├── olla.csproj           # Project file
 └── modinfo.json          # Mod metadata
 
@@ -180,6 +228,7 @@ What is covered:
 |---|---|
 | `OllaIrrigation` | the block entity — burial and empty gates, the range limit, that watering costs the litres it delivers, and that the patch is attached at all |
 | `OllaBlending` | the moisture floor — blend arithmetic against vanilla's curve, the olla cache, and that the patch is registered exactly once |
+| `OllaIrrigationTarget` | the `IrrigationTarget` cap — that the default is a no-op, that overlapping ollas cannot climb past it, that a capped olla never dries out natural water, and that farmland settles at it |
 | `OllaWaterTypes` | which liquids an olla accepts, checked against the live item registry |
 | `OllaFilling` | a real player filling one from a bucket, vanilla and Hydrate or Diedrate; needs `--client` |
 
@@ -198,6 +247,10 @@ Two things worth knowing if you add tests:
 
 #### OllaModSystem.cs
 Entry point that registers custom block and block entity classes with the game.
+
+#### OllaConfig.cs
+Reads, sanitises and writes back `ModConfig/olla.json`. Loaded server-side only,
+because both consumers of it are server-side; see [Configuration](#configuration).
 
 #### BlockOllaFired.cs
 Handles player interactions with placed olla blocks:

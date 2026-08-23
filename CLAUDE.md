@@ -63,6 +63,48 @@ purpose — a 100% floor still needs a source right alongside.
 A source found at distance 99 (nothing) clamps to zero moisture and leaves the
 product untouched, so the vanilla distance can be folded in unconditionally.
 
+The result is then capped at `IrrigationTarget` — see below, and note that the cap
+is what makes the final `Math.Min` against vanilla's own answer matter.
+
+## IrrigationTarget
+
+One config value in `ModConfig/olla.json`, capping **both** mechanisms. That is the
+point of it being one number: capping only the watering leaves overlapping ollas
+walking the floor towards 100% anyway, and the floor is the half that never decays.
+
+```
+active irrigation:  deficit = IrrigationTarget - MoistureLevel
+moisture floor:     blended = Math.Min(1 - dryness, IrrigationTarget)
+```
+
+Requested for [Farming Revamped](https://mods.vintagestory.at/show/mod/52211), which
+gives crops a moisture *band* and damages anything held too wet — it caps its own
+watering can at 0.75 for that reason, and kills waterlogged rye in about nine days.
+An uncapped olla pins its 5x5 above that permanently, so the complaint was not
+"too easy", it was "my crops die". ~0.6 suits it.
+
+Three things not to undo:
+
+- **The cap can make the blend worse than vanilla.** Uncapped, blending only ever
+  added moisture, so the old `Math.Min(__result, ...)` was a formality. Capped it is
+  load-bearing: the patch now returns early when the blended distance is no better
+  than what vanilla found, so an olla next to a pond can never *dry* the soil.
+  `ACappedOllaNeverDriesOutNaturalWater`.
+- **0 means off, and there is no useful value just above it.**
+  `GetGrowthRate` computes `Math.Max(0.01, moistureLevel * 100 / 70 - 0.143)`, whose
+  inner term crosses zero at 0.1001 — so 0.01 and 0 give an identical growth rate.
+  A small minimum would be a disabled mod that looks enabled. Warned about, not
+  clamped.
+- **Server-side only**, like the patch, and for the same reason — farmland moisture
+  is simulated there. Loading it on the client too would leave an editable file that
+  does nothing on someone else's server.
+
+`OllaConfig.Current` is settable so the suite can swap a target without restarting a
+world; the tests reset it in `[BeforeEach]` *and* `[AfterEach]` because it is static.
+That deliberately insulates them from whatever is in the config file, which is why
+"does the JSON actually reach the mod" is verified by reading the startup log line
+rather than by a test.
+
 ## The olla cache
 
 Keyed per farmland position, holding every irrigating olla in range. Two rules:
