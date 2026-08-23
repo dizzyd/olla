@@ -270,6 +270,10 @@ Contributions are welcome! Please ensure:
 
 ### Version History
 
+- **1.2.1**: The clay forming pattern now matches the pot it produces. It shaped
+  a squat flared bowl, 8 voxels tall and 15 wide at the rim, where the model is a
+  tall narrow olla with a neck; every layer now follows the model. Clay cost is
+  unchanged at 16.
 - **1.2.0**: Overlapping water sources blend into a single moisture floor instead
   of only the closest one counting, and natural water joins the blend. Hydrate or
   Diedrate's clean fresh water types are accepted; salt and polluted water are
