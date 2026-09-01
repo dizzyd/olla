@@ -323,6 +323,10 @@ Contributions are welcome! Please ensure:
 
 ### Version History
 
+- **1.3.1**: No gameplay change. Releases are now built on GitHub Actions and
+  carry Sigstore-signed build provenance, so the zip on ModDB can be checked
+  back to the commit it was built from with
+  `gh attestation verify olla_1.3.1.zip --repo dizzyd/olla`.
 - **1.3.0**: Added `IrrigationTarget` in `ModConfig/olla.json` — the moisture
   level an olla works towards, capping both active irrigation and the blended
   moisture floor. The default of `1.0` is the behaviour olla has always had;
