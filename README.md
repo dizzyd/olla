@@ -326,6 +326,11 @@ Contributions are welcome! Please ensure:
 
 ### Version History
 
+- **1.3.2**: Ollas fired in a beehive kiln take the same colours as vanilla
+  pottery, chosen by how many of the kiln's back doors stand open: tan, orange,
+  red or brown from red clay, cream, gray or black from blue clay, and fire clay
+  unchanged. A pit kiln still gives the plain clay colour. Existing ollas are
+  unaffected.
 - **1.3.1**: No gameplay change. Releases are now built on GitHub Actions and
   carry Sigstore-signed build provenance, so the zip on ModDB can be checked
   back to the commit it was built from with
