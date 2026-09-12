@@ -96,9 +96,37 @@
     "origin": { "x": 0.5, "y": 0.2, "z": 0.5 },
     "scale": 0.65
   },
-  "attributes": {
-    "handbook": {
-      "groupBy": ["olla-raw-*"]
+  // A beehive kiln fires by atmosphere, keyed by how many of its three back doors stand
+  // open, and reads this map ahead of combustibleProps. The pit kiln and other kilns still
+  // read smeltedStack and give the plain clay colour. The maps are vanilla's own for its
+  // cooking pot (blocktypes/clay/raw/pot.json).
+  "attributesByType": {
+    "olla-raw-red": {
+      "handbook": { "groupBy": ["olla-raw-*"] },
+      "beehivekiln": {
+        "0": { "type": "block", "code": "olla:olla-fired-tan-normal" },
+        "1": { "type": "block", "code": "olla:olla-fired-orange-normal" },
+        "2": { "type": "block", "code": "olla:olla-fired-red-normal" },
+        "3": { "type": "block", "code": "olla:olla-fired-brown-normal" }
+      }
+    },
+    "olla-raw-blue": {
+      "handbook": { "groupBy": ["olla-raw-*"] },
+      "beehivekiln": {
+        "0": { "type": "block", "code": "olla:olla-fired-cream-normal" },
+        "1": { "type": "block", "code": "olla:olla-fired-gray-normal" },
+        "2": { "type": "block", "code": "olla:olla-fired-black-normal" },
+        "3": { "type": "block", "code": "olla:olla-fired-black-normal" }
+      }
+    },
+    "olla-raw-fire": {
+      "handbook": { "groupBy": ["olla-raw-*"] },
+      "beehivekiln": {
+        "0": { "type": "block", "code": "olla:olla-fired-fire-normal" },
+        "1": { "type": "block", "code": "olla:olla-fired-fire-normal" },
+        "2": { "type": "block", "code": "olla:olla-fired-fire-normal" },
+        "3": { "type": "block", "code": "olla:olla-fired-fire-normal" }
+      }
     }
   }
 }

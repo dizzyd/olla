@@ -15,7 +15,8 @@ An olla is an unglazed clay pot used in traditional agriculture. When buried in 
 ### Features
 
 - **Craft traditional irrigation pottery** using clay forming
-- **3 color variants** - blue clay, fire clay, and red clay
+- **9 colours** - blue, fire and red clay from a pit kiln, and the same tans,
+  oranges, browns, creams, grays and blacks a beehive kiln gives vanilla pottery
 - **Subsurface irrigation** - waters a 5x5 area around the buried olla
 - **Water capacity** - holds 60 liters of water
 - **Efficient watering** - closer blocks receive more water, just like real subsurface irrigation
@@ -23,7 +24,9 @@ An olla is an unglazed clay pot used in traditional agriculture. When buried in 
 ### How to Use
 
 1. **Craft**: Use clay at a clay forming station to shape a raw olla
-2. **Fire**: Place the raw olla in a kiln to create a fired olla
+2. **Fire**: Place the raw olla in a kiln to create a fired olla. A pit kiln gives
+   the plain clay colour; a beehive kiln fires by atmosphere, so how many of its
+   back doors stand open picks the colour, exactly as for vanilla pots
 3. **Fill**: Right-click a fired olla with a water container (bucket, watering can, etc.)
 4. **Bury**: Right-click the filled olla with a soil block to bury it in the ground
 5. **Irrigate**: Once buried, the olla will automatically water nearby farmland
