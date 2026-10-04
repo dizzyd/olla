@@ -150,6 +150,70 @@ would bill the olla for water it never poured.
 `WateringIsBilledAtWhatItDelivers` pins the ratio, so if vanilla changes the
 factor a test fails rather than everyone's water use silently doubling.
 
+## Watering cans
+
+A can is not an `ILiquidSource` — it stores seconds of pouring (`wateringSeconds`), and
+its `OnHeldInteractStart` claims the click before `BlockOllaFired.OnBlockInteractStart`
+runs. So it is a second Harmony patch (`WateringCanPatch.cs`), prefix + postfix around
+`BlockWateringCan.OnHeldInteractStep`: vanilla drains the can as usual, the postfix
+converts the drained seconds to litres and refunds whatever a full olla could not take.
+
+5 L per full can is our number, not vanilla's — the only volume vanilla implies is that
+refilling a can from a placed bucket is meant to take 5 L. It does not: 1.22.0 computes
+`(int)(5 / itemsPerLitre)`, which is 0, so that refill takes nothing and leaves the can
+empty. The intent is the anchor, not the behaviour.
+
+**Unlike the farmland patch, this one runs on both sides**, and that is load-bearing.
+Vanilla drains the can on the client too, so a refund made only on the server leaves the
+client's copy running dry: the pour stops, the server's count comes back, it restarts,
+over and over, with water in the can throughout. Only the server touches the olla; the
+client makes the same refund from its own copy of the olla, which can trail by a sync as
+the olla fills — `OnHeldInteractStop`'s `MarkDirty` settles that on release.
+`ANearlyEmptyCanKeepsPouringOverAFullOlla` is the test that notices.
+
+**The refund also has to undo vanilla's return value.** The step that runs a can dry
+returns vanilla's stop-pouring result *before* the postfix puts the water back, so the
+postfix sets `__result = true` when it refunded a can that vanilla had emptied. Only that
+path: the drain is followed by no other return. Without it a can holding one step's worth
+or less stops over a full olla on every press. The `ACanHolding...OneStep...` tests step
+the method directly at a fixed 0.05 s, headless, because frame-timed input never lands on
+the boundary reliably; `ACanThatEmptiesIntoAnOllaStopsPouring` holds the other side.
+
+What is left is drift, not a loop. As the olla fills, the client's copy of it trails the
+server's, so the client drains a little past the server: measured 0.03-0.07 s of can in
+singleplayer, and in multiplayer it scales with latency. If the server is left holding
+less than that, the client's can reads empty and the pour visibly ends as the olla
+fills, with the server still holding that sliver - which nothing pushes back mid-hold, so
+no stop/restart cycle (a probe saw 0 refill jumps over 4 cases; one 3-sample blip). The
+release resyncs it. Predicting the olla's level on the client would close it; not
+judged worth a second copy of the olla's state.
+
+Both sides means the singleplayer double-registration trap applies in full, so the patch
+is applied once per process behind a static guard, under its own Harmony id
+(`com.dizzyd.olla.wateringcan`) so that either side's `Dispose` removes only what it
+applied. `TheCanPatchIsRegisteredExactlyOnce` guards it. The farmland patch is applied
+by class rather than `PatchAll()` for the same reason — `PatchAll()` would drag the other
+patch along to whichever side called it.
+
+The tests' 5 L is written out, not read from the mod, so a changed conversion fails them.
+
+**Water type is not checked.** Vanilla refills a can by right-click only from `water`
+blocks, but a can left lying in any liquid refills too (`OnGroundIdle`, `FeetInLiquid`) —
+salt water included — and the stack keeps no record of which. So a can is a way round
+the clean-fresh-water rule, and **that is accepted on purpose** (decided Oct 2026): cans
+count as fresh water. Closing it would mean tracking provenance on the stack, which vanilla
+does not do, to stop a deliberate trick that yields 5 L at a time. Do not add a water
+check here without revisiting that.
+
+The can tests hold the use button for the whole 32-second pour, and about one full-suite
+run in four or five on vsclient used to see it let go partway through. It is the window
+losing focus: `ClientMain.OnFocusChanged(false)` clears the held button without raising
+`MouseUp`, and nothing else in the client clears it. Caught in the act - button up, no
+`MouseUp` recorded, both sides agreeing on the can - and reproduced by invoking that
+handler mid-pour. `PourUntil` now presses again when the button reads up and logs
+"released under the test"; the pour still has to deliver the whole can. A held button
+that survives focus loss would be the real fix, and it belongs in vstestkit.
+
 ## Geometry
 
 - The olla sits at the **same Y** as the farmland it waters (`AddCopy(dx, 0, dz)`

@@ -27,7 +27,9 @@ An olla is an unglazed clay pot used in traditional agriculture. When buried in 
 2. **Fire**: Place the raw olla in a kiln to create a fired olla. A pit kiln gives
    the plain clay colour; a beehive kiln fires by atmosphere, so how many of its
    back doors stand open picks the colour, exactly as for vanilla pots
-3. **Fill**: Right-click a fired olla with a water container (bucket, watering can, etc.)
+3. **Fill**: Right-click a fired olla with a water container (bowl, jug, bucket), or
+   hold right-click on it with a watering can. A full can pours 5 L, so a 60 L olla
+   takes six buckets or twelve cans
 4. **Bury**: Right-click the filled olla with a soil block to bury it in the ground
 5. **Irrigate**: Once buried, the olla will automatically water nearby farmland
 
@@ -71,6 +73,10 @@ An olla takes clean, fresh water only. Vanilla `waterportion` works, as do
 well and boiled water. Salt water is refused because it would poison the soil, and
 muddy/tainted/poisoned water is refused because it is meant to be purified first. Trying
 to pour one of those in tells you so rather than silently doing nothing.
+
+A watering can is the exception: it is trusted as fresh water. The can keeps no record of
+where its water came from, and filling one the usual way - right-clicking water - only
+works on fresh water.
 
 ### Configuration
 
@@ -233,7 +239,7 @@ What is covered:
 | `OllaBlending` | the moisture floor — blend arithmetic against vanilla's curve, the olla cache, and that the patch is registered exactly once |
 | `OllaIrrigationTarget` | the `IrrigationTarget` cap — that the default is a no-op, that overlapping ollas cannot climb past it, that a capped olla never dries out natural water, and that farmland settles at it |
 | `OllaWaterTypes` | which liquids an olla accepts, checked against the live item registry |
-| `OllaFilling` | a real player filling one from a bucket, vanilla and Hydrate or Diedrate; needs `--client` |
+| `OllaFilling` | a real player filling one from a bucket, vanilla and Hydrate or Diedrate, and from a watering can — 5 L a can into a surface or buried olla, the overflow refund on both sides, and the can patch registered once, need `--client`; a can of one pour step or less over a full olla runs headless |
 
 Two things worth knowing if you add tests:
 
@@ -260,6 +266,14 @@ Handles player interactions with placed olla blocks:
 - Filling from water containers
 - Burying with soil blocks
 - Displaying help text and information
+
+#### WateringCanPatch.cs
+A Harmony patch on the watering can's pour step. The can holds seconds of pouring
+rather than a liquid, and it handles the click before the olla sees it, so it cannot use
+the container path above. Vanilla runs unchanged; the patch turns what it drained into
+litres at 5 L per full can, and gives back to the can whatever a full olla could not take.
+It runs on both sides: the server fills the olla, and the client makes the same refund so
+its copy of the can does not run dry mid-pour.
 
 #### BlockEntityOllaFired.cs
 Core irrigation logic:

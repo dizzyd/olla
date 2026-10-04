@@ -1,3 +1,4 @@
+using System.Threading;
 using HarmonyLib;
 using Vintagestory.API.Common;
 
@@ -5,7 +6,15 @@ namespace olla;
 
 public class OllaModSystem : ModSystem
 {
+    private const string HarmonyId = "com.dizzyd.olla";
+    private const string WateringCanHarmonyId = "com.dizzyd.olla.wateringcan";
+
+    // Static because in singleplayer both sides share this assembly, and a Harmony
+    // patch is per process: the first side to start applies it for both.
+    private static int wateringCanPatched;
+
     private Harmony harmony;
+    private Harmony wateringCanHarmony;
 
     public override void Start(ICoreAPI api)
     {
@@ -16,6 +25,15 @@ public class OllaModSystem : ModSystem
 
         // Register block entity classes
         api.RegisterBlockEntityClass("BlockEntityOllaFired", typeof(BlockEntityOllaFired));
+
+        // Both sides, unlike the farmland patch below. A can drains on the client as well
+        // as the server, so the client has to make the same overflow refund or it runs dry
+        // mid-pour on water the server says it still holds. Only the server fills the olla.
+        if (Interlocked.CompareExchange(ref wateringCanPatched, 1, 0) == 0)
+        {
+            wateringCanHarmony = new Harmony(WateringCanHarmonyId);
+            wateringCanHarmony.CreateClassProcessor(typeof(Patch_BlockWateringCan_OnHeldInteractStep)).Patch();
+        }
 
         // Server side only. Farmland moisture is simulated on the server, and in
         // singleplayer Start() runs once per side against the same assembly - so
@@ -30,9 +48,8 @@ public class OllaModSystem : ModSystem
         // IrrigationTarget on every farmland water check.
         OllaConfig.Load(api);
 
-        // Apply Harmony patches to integrate ollas with farmland water detection
-        harmony = new Harmony("com.dizzyd.olla");
-        harmony.PatchAll();
+        harmony = new Harmony(HarmonyId);
+        harmony.CreateClassProcessor(typeof(Patch_BEFarmland_GetNearbyWaterDistance)).Patch();
     }
 
     public override void Dispose()
@@ -40,7 +57,16 @@ public class OllaModSystem : ModSystem
         // Clear the olla cache when mod is unloaded
         Patch_BEFarmland_GetNearbyWaterDistance.ClearAllCache();
 
-        harmony?.UnpatchAll("com.dizzyd.olla");
+        harmony?.UnpatchAll(HarmonyId);
+
+        // Only the side that applied the can patch removes it, and it releases the guard
+        // so the next world loaded in this process patches again.
+        if (wateringCanHarmony != null)
+        {
+            wateringCanHarmony.UnpatchAll(WateringCanHarmonyId);
+            Volatile.Write(ref wateringCanPatched, 0);
+        }
+
         base.Dispose();
     }
 }
