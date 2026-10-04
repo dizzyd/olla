@@ -340,6 +340,11 @@ Contributions are welcome! Please ensure:
 
 ### Version History
 
+- **1.4.0**: Watering cans fill ollas. Hold right-click on an olla, surface or
+  buried, with a can and it pours in at 5 L a full can - between a jug and a
+  bucket, so buckets stay the quick way to fill one. Whatever a full olla cannot
+  take stays in the can. A can counts as fresh water: it keeps no record of where
+  its water came from.
 - **1.3.2**: Ollas fired in a beehive kiln take the same colours as vanilla
   pottery, chosen by how many of the kiln's back doors stand open: tan, orange,
   red or brown from red clay, cream, gray or black from blue clay, and fire clay
