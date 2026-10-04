@@ -353,7 +353,13 @@ Contributions are welcome! Please ensure:
 
 ### Version History
 
-- **1.4.0**: Watering cans fill ollas. Hold right-click on an olla, surface or
+- **1.4.1**: Ollas open to the sky slowly collect rain - about half a litre per
+  game hour of heavy rain, set by `RainLitresPerHour` in `ModConfig/olla.json`
+  (0 turns it off). An olla that runs dry while you are away starts watering again
+  from the rain that fell. Fixed an olla's last watering before running dry costing
+  less than the water it delivered. Also the first ModDB release with 1.4.0's
+  watering cans.
+- **1.4.0** (GitHub only, not published to ModDB): Watering cans fill ollas. Hold right-click on an olla, surface or
   buried, with a can and it pours in at 5 L a full can - between a jug and a
   bucket, so buckets stay the quick way to fill one. Whatever a full olla cannot
   take stays in the can. A can counts as fresh water: it keeps no record of where

@@ -6,7 +6,7 @@
         "DizzyD"
     ],
     "description": "Adds olla pottery for irrigation",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "dependencies": {
         "game": "1.22.0"
     }
