@@ -19,6 +19,7 @@ An olla is an unglazed clay pot used in traditional agriculture. When buried in 
   oranges, browns, creams, grays and blacks a beehive kiln gives vanilla pottery
 - **Subsurface irrigation** - waters a 5x5 area around the buried olla
 - **Water capacity** - holds 60 liters of water
+- **Rain collection** - an olla open to the sky slowly tops itself up when it rains
 - **Efficient watering** - closer blocks receive more water, just like real subsurface irrigation
 
 ### How to Use
@@ -37,6 +38,10 @@ An olla is an unglazed clay pot used in traditional agriculture. When buried in 
 
 - **Range**: 5x5 blocks (2 blocks in each direction from the olla)
 - **Only works when buried**: You must bury the olla for it to irrigate
+- **Rain**: An olla with nothing above it collects rain, about half a liter per game
+  hour of heavy rain and less in a light shower. A shower adds well under a liter and
+  a day-long downpour around 12, so you still fill it by hand; rain only tops it up.
+  A block placed on top stops it
 - **Distance matters**: Blocks closer to the olla receive water faster
 - **Water consumption**: Approximately 1.25 liters per unit of moisture intensity
 - **Full saturation**: Watering all 24 surrounding blocks requires ~30 liters
@@ -81,11 +86,12 @@ works on fresh water.
 ### Configuration
 
 Optional. On first launch the mod writes `ModConfig/olla.json` in your Vintage Story
-data directory with one setting:
+data directory with two settings:
 
 ```json
 {
-  "IrrigationTarget": 1.0
+  "IrrigationTarget": 1.0,
+  "RainLitresPerHour": 0.5
 }
 ```
 
@@ -108,7 +114,7 @@ above that permanently — and because the moisture floor never decays, the soil
 never dry out again, which kills the crop rather than feeding it. Around `0.6`
 suits it.
 
-Two things worth knowing:
+Worth knowing:
 
 - It is **server-side**. On a multiplayer server the host's setting is the one in
   effect; editing it on a client does nothing.
@@ -119,6 +125,11 @@ Two things worth knowing:
   does something subtler: vanilla's own growth curve stops distinguishing moisture
   below 10%, so anything under that is a disabled mod that looks enabled. The log
   says so on startup, along with the target actually in effect.
+
+**`RainLitresPerHour`** (default `0.5`) is how many litres an olla open to the sky
+collects per game hour of the heaviest rain, scaled down for lighter rain. `0` turns
+rain collection off. It is server-side too, and the startup log line reports it
+alongside the target.
 
 ### Installation
 
@@ -236,6 +247,7 @@ What is covered:
 | suite | asserts |
 |---|---|
 | `OllaIrrigation` | the block entity — burial and empty gates, the range limit, that watering costs the litres it delivers, and that the patch is attached at all |
+| `OllaRain` | rain collection — surface and buried ollas, rate scaling with rain, none under cover or past full, the setting at 0 or unusable, that an olla emptied before a long stretch irrigates again from that stretch's rain, and that a drizzle never waters more than it brought |
 | `OllaBlending` | the moisture floor — blend arithmetic against vanilla's curve, the olla cache, and that the patch is registered exactly once |
 | `OllaIrrigationTarget` | the `IrrigationTarget` cap — that the default is a no-op, that overlapping ollas cannot climb past it, that a capped olla never dries out natural water, and that farmland settles at it |
 | `OllaWaterTypes` | which liquids an olla accepts, checked against the live item registry |
@@ -280,6 +292,7 @@ Core irrigation logic:
 - Stores water (0-60 liters)
 - Updates irrigation every 5 seconds (game time)
 - Calculates moisture distribution based on distance
+- Collects rain when open to the sky, hour by hour across any unloaded stretch
 - Persists water levels and state
 
 ### Technical Details

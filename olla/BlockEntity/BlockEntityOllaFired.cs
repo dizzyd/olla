@@ -6,6 +6,7 @@ using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
+using Vintagestory.GameContent;
 
 namespace olla
 {
@@ -105,48 +106,91 @@ namespace olla
 
             lastTickTotalHours = currentTotalHours;
 
-            // Catch up irrigation with time scaling (handles both real-time and unloaded time)
-            CatchUpIrrigation(hoursElapsed);
+            // Catch up rain and irrigation together (handles both real-time and unloaded time)
+            CatchUp(currentTotalHours - hoursElapsed, hoursElapsed);
         }
 
         /// <summary>
-        /// Process irrigation for elapsed time using interval-based catch-up.
-        /// This simulates olla irrigation even when the chunk was unloaded,
-        /// similar to how BEFarmland catches up crop growth.
+        /// Process rain and irrigation for elapsed time using interval-based catch-up.
+        /// This simulates the olla even when the chunk was unloaded, similar to how
+        /// BEFarmland catches up crop growth.
+        ///
+        /// Rain is collected interval by interval rather than all at once, so an olla that
+        /// ran dry during a long absence starts irrigating again from the rain that fell,
+        /// not only once the player is back.
         /// </summary>
-        private void CatchUpIrrigation(double totalHoursElapsed)
+        private void CatchUp(double fromTotalHours, double totalHoursElapsed)
         {
             if (Api?.World?.BlockAccessor == null) return;
-            if (!HasWater) return;
-            if (!IsBuried()) return;
 
             // Cap catch-up time to prevent extreme fast-forwarding (same as BEFarmland)
             double maxCatchUpHours = MaxCatchUpDays * Api.World.Calendar.HoursPerDay;
-            totalHoursElapsed = Math.Min(totalHoursElapsed, maxCatchUpHours);
+            if (totalHoursElapsed > maxCatchUpHours)
+            {
+                fromTotalHours += totalHoursElapsed - maxCatchUpHours;
+                totalHoursElapsed = maxCatchUpHours;
+            }
 
-            // Process irrigation in intervals (3-4 hour intervals like BEFarmland)
+            // Process in intervals (3-4 hour intervals like BEFarmland)
             // This provides more realistic simulation than doing it all at once
             double hoursProcessed = 0;
-            double intervalHours = 3.0 + Api.World.Rand.NextDouble(); // Random 3-4 hours
 
-            while (hoursProcessed < totalHoursElapsed && HasWater)
+            while (hoursProcessed < totalHoursElapsed)
             {
                 // Calculate hours for this interval (don't exceed remaining time)
+                double intervalHours = 3.0 + Api.World.Rand.NextDouble(); // Random 3-4 hours
                 double hoursThisInterval = Math.Min(intervalHours, totalHoursElapsed - hoursProcessed);
 
-                // Do the irrigation for this interval
+                CollectRain(fromTotalHours + hoursProcessed, hoursThisInterval);
                 UpdateIrrigation(hoursThisInterval);
 
-                // Advance time
                 hoursProcessed += hoursThisInterval;
-
-                // Randomize next interval (3-4 hours)
-                intervalHours = 3.0 + Api.World.Rand.NextDouble();
-
-                // Early exit if we ran out of water
-                if (!HasWater) break;
             }
         }
+
+        /// <summary>
+        /// Rain falling into the olla's open mouth over a span of game hours, at
+        /// <see cref="OllaConfig.RainLitresPerHour"/> per hour of full precipitation.
+        ///
+        /// Sampled an hour at a time, the way BlockEntitySoilNutrition counts the rain that
+        /// fell on farmland since its last update, so a long unloaded stretch picks up the
+        /// showers that actually happened in it. Exposure is judged now, as vanilla does:
+        /// the rain map does not remember what stood on top of the olla last week.
+        /// </summary>
+        private void CollectRain(double fromTotalHours, double hours)
+        {
+            float rate = OllaConfig.Current.RainLitresPerHour;
+            if (rate <= 0f || hours <= 0 || currentWaterLiters >= MaxWaterLiters) return;
+            if (!IsOpenToTheSky()) return;
+
+            var weather = Api.ModLoader.GetModSystem<WeatherSystemBase>();
+            if (weather == null) return;
+
+            double hoursPerDay = Api.World.Calendar.HoursPerDay;
+            ClimateCondition climate = Api.World.BlockAccessor.GetClimateAt(
+                Pos, EnumGetClimateMode.WorldGenValues, (fromTotalHours + hours / 2) / hoursPerDay);
+
+            double litres = 0;
+            for (double done = 0; done < hours; done += 1)
+            {
+                double slice = Math.Min(1, hours - done);
+                double sampleTotalDays = (fromTotalHours + done + slice / 2) / hoursPerDay;
+                litres += weather.GetPrecipitation(Pos, sampleTotalDays, climate) * rate * slice;
+            }
+
+            if (litres > 0) TryAddWater((float)litres);
+        }
+
+        /// <summary>
+        /// Nothing rain-blocking above the olla. The olla is itself the topmost rain-blocking
+        /// block when uncovered, so the rain map stands at its own height - the same test
+        /// farmland uses for its own exposure.
+        /// </summary>
+        public bool IsOpenToTheSky()
+        {
+            return Api.World.BlockAccessor.GetRainMapHeightAt(Pos.X, Pos.Z) <= Pos.Y;
+        }
+
 
         public bool IsBuried()
         {
@@ -189,9 +233,10 @@ namespace olla
             foreach (var (soilPos, distance) in sortedPositions)
             {
                 // Stop if we're about to run out of water
-                if (currentWaterLiters - totalWaterUsed <= 0) break;
+                float litresLeft = currentWaterLiters - totalWaterUsed;
+                if (litresLeft <= 0) break;
 
-                float waterUsed = UpdateSoilMoisture(soilPos, distance, hoursElapsed);
+                float waterUsed = UpdateSoilMoisture(soilPos, distance, hoursElapsed, litresLeft);
                 if (waterUsed > 0)
                 {
                     blocksIrrigated++;
@@ -214,7 +259,7 @@ namespace olla
             }
         }
 
-        private float UpdateSoilMoisture(BlockPos pos, int distance, double hoursElapsed)
+        private float UpdateSoilMoisture(BlockPos pos, int distance, double hoursElapsed, float litresLeft)
         {
             var block = Api.World.BlockAccessor.GetBlock(pos);
             if (block == null) return 0f;
@@ -249,6 +294,13 @@ namespace olla
                 // Calculate water to add based on elapsed game time
                 // Use the smaller of: deficit or (rate per hour × hours elapsed)
                 float wateringAmount = Math.Min(moistureDeficit, hourlyRate * (float)hoursElapsed);
+
+                // And no more than the olla still holds. The loop above only checks that
+                // some water is left, so without this the last block watered is given
+                // its full share regardless and the olla's level clamps at zero - free
+                // water, every time rain trickles a few millilitres into an empty pot.
+                wateringAmount = Math.Min(wateringAmount,
+                    litresLeft / (LitersPerIntensity * WaterFarmlandDeliveryFactor));
 
                 // Apply water to soil - don't water neighbors since we're already handling the full 5x5 area
                 farmland.WaterFarmland(wateringAmount, false);

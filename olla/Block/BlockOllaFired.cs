@@ -181,6 +181,7 @@ namespace olla
             dsc.AppendLine("Closest blocks get more water");
             dsc.AppendLine("Farther blocks get less water");
             dsc.AppendLine("~30L to fully saturate 24 blocks");
+            dsc.AppendLine("Slowly collects rain when open to the sky");
             dsc.AppendLine("");
             dsc.AppendLine("Overlapping ollas blend their moisture:");
             dsc.AppendLine("two at the edge of each other's range");

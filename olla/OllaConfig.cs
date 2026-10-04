@@ -8,8 +8,8 @@ namespace olla
     /// Player-editable settings, read from and written back to
     /// <c>ModConfig/olla.json</c> in the game's data directory.
     ///
-    /// Server-side only: both consumers - the irrigation tick and the moisture
-    /// floor patch - run on the server, because that is where farmland moisture
+    /// Server-side only: every consumer - the olla's tick and the moisture
+    /// floor patch - runs on the server, because that is where farmland moisture
     /// is simulated. Loading it on the client too would leave a config file that
     /// a player could edit with no effect while connected to someone else's game.
     /// </summary>
@@ -40,6 +40,23 @@ namespace olla
         public float IrrigationTarget { get; set; } = 1.0f;
 
         /// <summary>
+        /// Litres an olla open to the sky collects per game hour of full
+        /// precipitation, scaled down for lighter rain. 0 turns rain collection off.
+        ///
+        /// Meant to be slow, a top-up rather than a way to fill one: a light shower
+        /// (precipitation 0.3 for four hours) adds about 0.6 L, and a downpour lasting
+        /// a whole day about 12 L of the olla's 60.
+        ///
+        /// Still generous next to the real thing. Through a 7.5 cm neck alone, 0.5 L an
+        /// hour would take about 4.4 inches of rain an hour, where heavy rain is around
+        /// one; it is what a 16 cm catchment around the mouth would gather in heavy rain.
+        /// A rate true to a bare neck, about a tenth of this, makes no difference in play.
+        /// </summary>
+        public float RainLitresPerHour { get; set; } = DefaultRainLitresPerHour;
+
+        private const float DefaultRainLitresPerHour = 0.5f;
+
+        /// <summary>
         /// Below this, vanilla stops distinguishing moisture levels at all:
         /// BlockEntitySoilNutrition.GetGrowthRate computes
         /// <c>Math.Max(0.01, moistureLevel * 100 / 70 - 0.143)</c>, and that
@@ -52,13 +69,13 @@ namespace olla
         private const float VanillaGrowthFloor = 0.1f;
 
         /// <summary>
-        /// What the rest of the mod reads. Defaults to vanilla behaviour so that
+        /// What the rest of the mod reads. Starts as the default settings, so that
         /// anything running before <see cref="Load"/> - or on the client, which
-        /// never loads it - behaves as it always did rather than throwing.
+        /// never loads it - gets those rather than a null.
         ///
-        /// Settable so the in-game suite can exercise a target without writing a
-        /// config file and restarting the world. Nothing caches the value, so a
-        /// swap takes effect on the next farmland water check.
+        /// Settable so the in-game suite can exercise a setting without writing a
+        /// config file and restarting the world. Nothing caches the values: a swap
+        /// takes effect on the next farmland water check and the next olla tick.
         /// </summary>
         public static OllaConfig Current { get; set; } = new OllaConfig();
 
@@ -102,7 +119,8 @@ namespace olla
             // Stated on every start, because "what is your IrrigationTarget set to"
             // is the first question any report about moisture levels needs answered,
             // and a log is easier to ask someone for than a config file.
-            api.Logger.Notification("[olla] IrrigationTarget {0}", config.IrrigationTarget);
+            api.Logger.Notification("[olla] IrrigationTarget {0}, RainLitresPerHour {1}",
+                config.IrrigationTarget, config.RainLitresPerHour);
 
             Current = config;
         }
@@ -136,6 +154,23 @@ namespace olla
                     "[olla] IrrigationTarget {0} is below {1}, where vanilla stops distinguishing " +
                     "moisture levels - crops will grow no better than on bone dry soil.",
                     IrrigationTarget, VanillaGrowthFloor);
+            }
+
+            // Not a number, or too large for a float - Newtonsoft reads 1e100 as Infinity,
+            // and 0 * Infinity is NaN, so one dry hour would poison a wet interval. Back
+            // to the default. A negative rate has no meaning; 0 turns collection off.
+            if (float.IsNaN(RainLitresPerHour) || float.IsPositiveInfinity(RainLitresPerHour))
+            {
+                api.Logger.Warning(
+                    "[olla] RainLitresPerHour {0} is not a usable number, using the default {1}",
+                    RainLitresPerHour, DefaultRainLitresPerHour);
+                RainLitresPerHour = DefaultRainLitresPerHour;
+            }
+            if (RainLitresPerHour < 0f)
+            {
+                api.Logger.Warning(
+                    "[olla] RainLitresPerHour {0} is negative, using 0 (no rain collection)", RainLitresPerHour);
+                RainLitresPerHour = 0f;
             }
         }
     }

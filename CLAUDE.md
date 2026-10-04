@@ -68,7 +68,7 @@ is what makes the final `Math.Min` against vanilla's own answer matter.
 
 ## IrrigationTarget
 
-One config value in `ModConfig/olla.json`, capping **both** mechanisms. That is the
+A value in `ModConfig/olla.json` (beside `RainLitresPerHour`, below), capping **both** mechanisms. That is the
 point of it being one number: capping only the watering leaves overlapping ollas
 walking the floor towards 100% anyway, and the floor is the half that never decays.
 
@@ -150,6 +150,13 @@ would bill the olla for water it never poured.
 `WateringIsBilledAtWhatItDelivers` pins the ratio, so if vanilla changes the
 factor a test fails rather than everyone's water use silently doubling.
 
+**Each request is also capped at what the olla still holds.** The loop only checks
+that *some* water is left before each block, so the last block watered used to get its
+full share regardless and the level clamped at zero. Harmless while that happened once
+per olla; rain made it recur, every few millilitres into an empty pot buying a full
+watering - about 57 times what fell, measured. The order is unchanged: still nearest
+first, so a trickle goes to the closest block. `ADrizzleIntoAnEmptyOllaWatersNoMoreThanItCollected`.
+
 ## Watering cans
 
 A can is not an `ILiquidSource` — it stores seconds of pouring (`wateringSeconds`), and
@@ -214,6 +221,37 @@ handler mid-pour. `PourUntil` now presses again when the button reads up and log
 "released under the test"; the pour still has to deliver the whole can. A held button
 that survives focus loss would be the real fix, and it belongs in vstestkit.
 
+## Rain
+
+An olla with nothing rain-blocking above it collects `RainLitresPerHour` (config,
+default 0.5) per game hour of full precipitation, scaled by the level. Surface and buried
+alike; only burial gates irrigation. Exposure is vanilla farmland's own test,
+`GetRainMapHeightAt <= Pos.Y` - the olla is itself the topmost rain-blocking block when
+uncovered - and it is judged *now*, as vanilla does, not for each past hour.
+
+It is part of the catch-up, not a separate tick: each 3-4 hour interval collects its
+rain and then irrigates, so an olla that was empty when a long unloaded stretch began
+works again within it. Rain is sampled an hour at a time with
+`WeatherSystemBase.GetPrecipitation(pos, totalDays, climate)`, the same way
+`BlockEntitySoilNutrition` counts rain on farmland since its last update. The
+interleaving is what `AnEmptyOllaRefilledByRainIrrigatesInTheSameStretch` checks; adding
+the whole stretch's rain at the end fails it.
+
+0.5 is a compromise, chosen in Oct 2026. Through a real olla's 5-10 cm neck it would
+need 2.5-10 in/h of rain, against about 1 in/h for heavy rain; a rate true to the neck
+is about a tenth of it and does nothing visible in play. 0.5 reads as a small catchment
+around the mouth: a day-long downpour adds about 12 L.
+
+Snow counts as rain, as it does for farmland - vanilla's precipitation level does not
+distinguish them.
+
+vstestkit forces precipitation to 0 for the session, which the farmland tests depend on.
+`OllaRain` sets its own and puts 0 back in `[AfterEach]`. `RainLitresPerHour` that is
+NaN or Infinity (Newtonsoft reads `1e100` as Infinity, and `0 * Infinity` is NaN) falls
+back to the default with a warning; a large finite rate is left alone. That override applies to any
+moment, past or present, so the suite cannot tell whether rain is sampled at the right
+past hours - only that it is counted.
+
 ## Geometry
 
 - The olla sits at the **same Y** as the farmland it waters (`AddCopy(dx, 0, dz)`
@@ -243,8 +281,15 @@ Two traps are specific to farmland and cost real time here:
   re-searches, and that needs 3-4 game hours to have passed. Advance the calendar
   between two `TickNow` calls or the floor never appears.
 
-And one about the world: **water flows.** A test that places a pond and measures
-twice will watch it creep a block closer between readings. Wall it in.
+Two about the world:
+
+- **Water flows.** A test that places a pond and measures twice will watch it creep
+  a block closer between readings. Wall it in.
+- **Unsupported rock does not stay.** Granite set directly on farmland, or two blocks
+  above it over air, is gone a tick later - most likely 1.22's `UnstableRock`
+  collapse, though the mechanism was not traced. Granite resting on an olla stays.
+  `OllaRain` roofs farmland with planks and asserts the rain map, because a vanished
+  roof is how the irrigation-from-rain test first passed for the wrong reason.
 
 ## Two things that fail silently
 
