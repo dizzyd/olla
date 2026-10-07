@@ -58,9 +58,9 @@
     }
   },
   "sounds": {
-    "place": "game:block/ceramicvessel",
-    "hit": "game:block/ceramicvessel",
-    "break": "game:block/ceramicvessel",
+    "place": "game:block/ceramicplace",
+    "hit": "game:block/ceramichit",
+    "break": "game:block/ceramicplace",
     "walk": "game:walk/stone"
   },
   "drops": [
