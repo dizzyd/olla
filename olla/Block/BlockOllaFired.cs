@@ -187,7 +187,7 @@ namespace olla
             dsc.AppendLine("two at the edge of each other's range");
             dsc.AppendLine("hold soil at 75% instead of 50%");
             dsc.AppendLine("");
-            dsc.AppendLine("Use soil block to bury (permanent)");
+            dsc.AppendLine("Use soil block to bury (dig it up to undo)");
         }
     }
 }
