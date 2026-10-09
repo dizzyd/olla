@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Vintagestory.API.Client;
@@ -40,10 +41,56 @@ namespace olla
             return codePath != null && AcceptedWaterCodes.Contains(codePath);
         }
 
+        /// <summary>
+        /// The olla's block entity, put back on the server if it has gone missing.
+        ///
+        /// The game discards a block entity whose class is not registered when its chunk
+        /// loads, and the next save writes the chunk without it - so a world opened once with
+        /// the mod disabled keeps every olla block but loses what made it an olla. Left that
+        /// way it shows no water, cannot be filled and never irrigates, until it is dug up
+        /// and placed again. A restored olla starts empty: the water went with the original.
+        ///
+        /// Returns null on the client when there is none - the server's restore reaches the
+        /// client as an ordinary block entity update - or when another block entity is in
+        /// the way, which is left alone.
+        /// </summary>
+        public static BlockEntityOllaFired GetOrRestoreBlockEntity(IWorldAccessor world, BlockPos pos)
+        {
+            BlockEntity existing = world.BlockAccessor.GetBlockEntity(pos);
+            if (existing is BlockEntityOllaFired be) return be;
+            if (existing != null || world.Side != EnumAppSide.Server) return null;
+            if (world.BlockAccessor.GetBlock(pos) is not BlockOllaFired block) return null;
+
+            world.BlockAccessor.SpawnBlockEntity(block.EntityClass, pos);
+            world.Logger.Notification("[olla] Restored a missing block entity at {0}; it starts empty", pos);
+            return world.BlockAccessor.GetBlockEntity(pos) as BlockEntityOllaFired;
+        }
+
+        /// <summary>
+        /// Random block ticks, so an olla nobody touches is restored too. This runs off the
+        /// main thread, and no vanilla block reads a block entity here, so neither does this
+        /// one: every olla the random tick lands on is queued, and OnServerGameTick looks.
+        /// Ollas are few enough that the queue never notices.
+        /// </summary>
+        public override bool ShouldReceiveServerGameTicks(IWorldAccessor world, BlockPos pos, Random offThreadRandom, out object extra)
+        {
+            base.ShouldReceiveServerGameTicks(world, pos, offThreadRandom, out extra);
+            return true;
+        }
+
+        public override void OnServerGameTick(IWorldAccessor world, BlockPos pos, object extra = null)
+        {
+            base.OnServerGameTick(world, pos, extra);
+            GetOrRestoreBlockEntity(world, pos);
+        }
+
         public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
         {
-            BlockEntityOllaFired be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityOllaFired;
-            if (be == null) return base.OnBlockInteractStart(world, byPlayer, blockSel);
+            // A client whose olla lost its block entity still accepts burying and filling -
+            // neither touches it client-side - because the server only hears about a click the
+            // client accepted, and it is the server that restores it.
+            BlockEntityOllaFired be = GetOrRestoreBlockEntity(world, blockSel.Position);
+            if (be == null && world.Side == EnumAppSide.Server) return base.OnBlockInteractStart(world, byPlayer, blockSel);
 
             ItemSlot activeSlot = byPlayer.InventoryManager.ActiveHotbarSlot;
             if (activeSlot?.Empty != false) return base.OnBlockInteractStart(world, byPlayer, blockSel);
@@ -65,6 +112,7 @@ namespace olla
             return base.OnBlockInteractStart(world, byPlayer, blockSel);
         }
 
+        // be is null on a client whose olla lost its block entity - use it server-side only.
         private bool TryFillFromWaterContainer(IWorldAccessor world, IPlayer byPlayer, BlockEntityOllaFired be, ItemStack itemStack, ItemSlot slot)
         {
             // Check if the held item is a liquid source
@@ -123,6 +171,7 @@ namespace olla
             return true;
         }
 
+        // be is null on a client whose olla lost its block entity - use it server-side only.
         private bool TryBuryWithSoil(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, BlockEntityOllaFired be, ItemStack itemStack, ItemSlot slot)
         {
             // Check if this is already buried

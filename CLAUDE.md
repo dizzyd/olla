@@ -291,6 +291,30 @@ Two about the world:
   `OllaRain` roofs farmland with planks and asserts the rain map, because a vanished
   roof is how the irrigation-from-rain test first passed for the wrong reason.
 
+## A lost block entity is restored
+
+The game discards a block entity whose class is not registered when its chunk loads, and
+the next save writes the chunk without it. So a world opened once with the mod disabled
+keeps every olla *block* and loses what made it an olla: the info panel shows only the
+name, it cannot be filled, it never irrigates. Reported Oct 2026 from a world where every
+olla buried before an update had gone that way, until each was dug up and placed again.
+
+`BlockOllaFired.GetOrRestoreBlockEntity` spawns a fresh, empty one server-side. It runs
+from `OnBlockInteractStart`, from the can patch's prefix, and from random block ticks, so
+untouched ollas within `BlockTickChunkRange` (5 chunks) of a player recover too - about
+10 minutes on average from the defaults (16 random blocks per chunk every 300 ms, against
+32768 in a chunk). Two details:
+
+- `ShouldReceiveServerGameTicks` returns true **unconditionally**. It runs off-thread, and
+  no vanilla block reads a block entity there, so the check happens in `OnServerGameTick`.
+- **The client must accept the click without a block entity.** The server only hears
+  about an interaction the client's `OnBlockInteractStart` returned true for
+  (`TryBeginUseBlock`), so bailing out on a null block entity client-side would keep the
+  server from ever restoring it. Burying and filling only touch the block entity on the
+  server, which is what makes that safe.
+
+The water is not recoverable; it went with the original. `tests/OllaRestore.cs`.
+
 ## Two things that fail silently
 
 `UpdateSoilMoisture`'s `dynamic` + `catch { return 0f; }` turns any farmland API

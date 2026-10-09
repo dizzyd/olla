@@ -42,7 +42,7 @@ namespace olla
             __state = -1f;
 
             if (blockSel == null || slot?.Itemstack == null) return;
-            if (byEntity.World.BlockAccessor.GetBlockEntity(blockSel.Position) is not BlockEntityOllaFired) return;
+            if (BlockOllaFired.GetOrRestoreBlockEntity(byEntity.World, blockSel.Position) == null) return;
 
             __state = __instance.GetRemainingWateringSeconds(slot.Itemstack);
         }

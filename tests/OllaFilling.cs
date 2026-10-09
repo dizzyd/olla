@@ -328,7 +328,7 @@ namespace Olla.Tests
         /// the fill tests fail *and* the refusal tests pass for entirely the wrong
         /// reason. Hence the client-side check before any test acts on it.
         /// </summary>
-        static async Task HoldBucketOf(string liquidCode)
+        internal static async Task HoldBucketOf(string liquidCode)
         {
             await Player.Hold(Bucket);
 
@@ -384,6 +384,15 @@ namespace Olla.Tests
             var be = await PlaceOlla();
             if (ollaLitres > 0f) be.TryAddWater(System.Math.Min(ollaLitres, be.MaxWaterCapacity));
 
+            return StepCanAtOlla(canSeconds);
+        }
+
+        /// <summary>
+        /// One patched OnHeldInteractStep of a can holding canSeconds, aimed at whatever
+        /// stands at Olla, held by a hen so no client is needed.
+        /// </summary>
+        internal static (bool KeepPouring, float SecondsLeft) StepCanAtOlla(float canSeconds)
+        {
             var pourer = World.SpawnEntity("game:chicken-hen", P(8, 1, 6)) as EntityAgent;
             Assert.NotNull(pourer, "something to hold the can");
 
