@@ -252,6 +252,8 @@ What is covered:
 | `OllaIrrigationTarget` | the `IrrigationTarget` cap — that the default is a no-op, that overlapping ollas cannot climb past it, that a capped olla never dries out natural water, and that farmland settles at it |
 | `OllaWaterTypes` | which liquids an olla accepts, checked against the live item registry |
 | `OllaFilling` | a real player filling one from a bucket, vanilla and Hydrate or Diedrate, and from a watering can — 5 L a can into a surface or buried olla, the overflow refund on both sides, and the can patch registered once, need `--client`; a can of one pour step or less over a full olla runs headless |
+| `OllaRestore` | an olla that lost its block entity — restored empty by a random tick, a bucket or a watering can, with a healthy one left alone; the bucket and client-sync cases need `--client` |
+| `OllaColours` | the beehive kiln's colour maps resolve to real blocks, and every fired colour has a buried form and a name |
 
 Two things worth knowing if you add tests:
 

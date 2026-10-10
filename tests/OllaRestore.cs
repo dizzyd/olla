@@ -29,7 +29,7 @@ namespace Olla.Tests
                 "an olla asks for random ticks");
             block.OnServerGameTick(Sapi.World, Olla, extra);
 
-            var be = Sapi.World.BlockAccessor.GetBlockEntity(Olla) as olla.BlockEntityOllaFired;
+            var be = ServerOllaOrNull();
             Assert.NotNull(be, "the block entity is back");
             Assert.Equal(0f, be.CurrentWaterLiters, "a restored olla starts empty");
             Assert.True(be.IsBuried(), "and still knows it is buried");
@@ -71,10 +71,8 @@ namespace Olla.Tests
             await Player.StandNear(Olla);
             await Interact.UseBlock(Olla);
 
-            await Until(() => (Sapi.World.BlockAccessor.GetBlockEntity(Olla) as olla.BlockEntityOllaFired)
-                ?.CurrentWaterLiters > 0, 120);
-            var be = World.BE<olla.BlockEntityOllaFired>(Olla);
-            Assert.Close(be.CurrentWaterLiters, 10.0, 0.01, "the first bucket lands in the restored olla");
+            await Until(() => ServerOllaOrNull()?.CurrentWaterLiters > 0, 120);
+            Assert.Close(ServerOllaOrNull().CurrentWaterLiters, 10.0, 0.01, "the first bucket lands in the restored olla");
         }
 
         [VsTest(TimeoutMs = 60000)]
@@ -84,7 +82,7 @@ namespace Olla.Tests
 
             OllaFilling.StepCanAtOlla(10f);
 
-            var be = Sapi.World.BlockAccessor.GetBlockEntity(Olla) as olla.BlockEntityOllaFired;
+            var be = ServerOllaOrNull();
             Assert.NotNull(be, "the first pour restores the block entity");
             Assert.Greater(be.CurrentWaterLiters, 0f, "and lands in it");
         }
@@ -132,6 +130,9 @@ namespace Olla.Tests
             }
             Assert.Fail(what);
         }
+
+        static olla.BlockEntityOllaFired ServerOllaOrNull() =>
+            Sapi.World.BlockAccessor.GetBlockEntity(Olla) as olla.BlockEntityOllaFired;
 
         static async Task<bool> ClientHasOlla()
         {
