@@ -355,6 +355,14 @@ Contributions are welcome! Please ensure:
 
 ### Version History
 
+- **1.4.2**: An olla that lost its block entity repairs itself. Opening a world
+  with the mod disabled, even once, leaves ollas that show no water, cannot be
+  filled and never irrigate; they now come back on their own while a player is
+  nearby - about ten minutes on average - or as soon as one is filled. A repaired
+  olla starts empty - the water it held is gone. Digging up and placing one again
+  still works too. Fixed a missing-sound warning on every place, hit and break,
+  and the tooltip no longer calls burial permanent: digging an olla up returns it
+  whole.
 - **1.4.1**: Ollas open to the sky slowly collect rain - about half a litre per
   game hour of heavy rain, set by `RainLitresPerHour` in `ModConfig/olla.json`
   (0 turns it off). An olla that runs dry while you are away starts watering again
