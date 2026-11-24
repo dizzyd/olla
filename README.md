@@ -355,6 +355,8 @@ Contributions are welcome! Please ensure:
 
 ### Version History
 
+- **1.4.3**: The undersides of the olla's body are drawn. Seen from below, raw and
+  fired ollas of every colour had gaps straight through the pot.
 - **1.4.2**: An olla that lost its block entity repairs itself. Opening a world
   with the mod disabled, even once, leaves ollas that show no water, cannot be
   filled and never irrigate; they now come back on their own while a player is
